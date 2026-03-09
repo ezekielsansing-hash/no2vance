@@ -5,9 +5,13 @@ import Link from 'next/link'
 import styles from './page.module.css'
 import { EventRecord, loadEvents, saveEvents } from './lib/events'
 
+type ViewMode = 'list' | 'calendar'
+
 export default function Home() {
   const [events, setEvents] = useState<EventRecord[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<ViewMode>('list')
+  const [calendarDate, setCalendarDate] = useState(() => new Date())
 
   useEffect(() => {
     const initial = loadEvents()
@@ -33,6 +37,87 @@ export default function Home() {
     })
   }
 
+  // Calendar helpers
+  const calendarDays = useMemo(() => {
+    const year = calendarDate.getFullYear()
+    const month = calendarDate.getMonth()
+    const firstDay = new Date(year, month, 1)
+    const lastDay = new Date(year, month + 1, 0)
+    const startOffset = firstDay.getDay()
+    const daysInMonth = lastDay.getDate()
+
+    const days: { date: Date; isCurrentMonth: boolean }[] = []
+
+    // Days from previous month
+    const prevMonthLastDay = new Date(year, month, 0).getDate()
+    for (let i = startOffset - 1; i >= 0; i--) {
+      days.push({
+        date: new Date(year, month - 1, prevMonthLastDay - i),
+        isCurrentMonth: false,
+      })
+    }
+
+    // Days in current month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push({
+        date: new Date(year, month, i),
+        isCurrentMonth: true,
+      })
+    }
+
+    // Fill remaining cells to complete 6 weeks (42 days)
+    const remaining = 42 - days.length
+    for (let i = 1; i <= remaining; i++) {
+      days.push({
+        date: new Date(year, month + 1, i),
+        isCurrentMonth: false,
+      })
+    }
+
+    return days
+  }, [calendarDate])
+
+  const eventsByDate = useMemo(() => {
+    const map: Record<string, EventRecord[]> = {}
+    events.forEach((event) => {
+      if (event.eventDate) {
+        const dateKey = event.eventDate.split('T')[0]
+        if (!map[dateKey]) map[dateKey] = []
+        map[dateKey].push(event)
+      }
+    })
+    return map
+  }, [events])
+
+  function formatDateKey(date: Date): string {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  function isToday(date: Date): boolean {
+    const today = new Date()
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    )
+  }
+
+  function navigateMonth(delta: number) {
+    setCalendarDate((prev) => {
+      const next = new Date(prev)
+      next.setMonth(next.getMonth() + delta)
+      return next
+    })
+  }
+
+  const monthYearLabel = calendarDate.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  })
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -43,7 +128,23 @@ export default function Home() {
               Quick overview of all saved events for your multi-use venue.
             </p>
           </div>
-          <div>
+          <div className={styles.headerActions}>
+            <div className={styles.viewToggle}>
+              <button
+                type="button"
+                className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
+                onClick={() => setViewMode('list')}
+              >
+                List
+              </button>
+              <button
+                type="button"
+                className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
+                onClick={() => setViewMode('calendar')}
+              >
+                Calendar
+              </button>
+            </div>
             <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
               New Booking
             </Link>
@@ -59,56 +160,114 @@ export default function Home() {
             </p>
           ) : (
             <div className={styles.listLayout}>
-              <div className={styles.eventList}>
-                {events.map((event) => (
-                  <button
-                    key={event.id}
-                    type="button"
-                    className={`${styles.eventCard} ${
-                      activeId === event.id ? styles.eventCardActive : ''
-                    }`}
-                    onClick={() => setActiveId(event.id)}
-                  >
-                    <div className={styles.eventCardMain}>
-                      <div className={styles.eventTitleRow}>
-                        <span className={styles.eventType}>
-                          {event.eventType || 'Untitled Event'}
+              {viewMode === 'list' ? (
+                <div className={styles.eventList}>
+                  {events.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      className={`${styles.eventCard} ${
+                        activeId === event.id ? styles.eventCardActive : ''
+                      }`}
+                      onClick={() => setActiveId(event.id)}
+                    >
+                      <div className={styles.eventCardMain}>
+                        <div className={styles.eventTitleRow}>
+                          <span className={styles.eventType}>
+                            {event.eventType || 'Untitled Event'}
+                          </span>
+                          {event.effortLevel && (
+                            <span className={`${styles.pill} ${styles.pillEffort}`}>
+                              {event.effortLevel}
+                            </span>
+                          )}
+                        </div>
+                        <span className={styles.eventMetaPrimary}>
+                          {event.eventDate
+                            ? new Date(event.eventDate).toLocaleDateString()
+                            : 'Date TBD'}
+                          {event.eventTimeStart &&
+                            ` • ${event.eventTimeStart}${
+                              event.eventTimeEnd ? `–${event.eventTimeEnd}` : ''
+                            }`}
                         </span>
-                        {event.effortLevel && (
-                          <span className={`${styles.pill} ${styles.pillEffort}`}>
-                            {event.effortLevel}
+                        <span className={styles.eventMetaSecondary}>
+                          {event.customerName || 'No customer yet'}
+                          {event.ratePackage && ` • ${event.ratePackage}`}
+                        </span>
+                      </div>
+                      <div className={styles.eventCardAside}>
+                        {event.estimatedGuestCount && (
+                          <span className={styles.pill}>
+                            {event.estimatedGuestCount} guests
+                          </span>
+                        )}
+                        {event.paymentSummary && (
+                          <span className={styles.pillMuted}>
+                            {event.paymentSummary}
                           </span>
                         )}
                       </div>
-                      <span className={styles.eventMetaPrimary}>
-                        {event.eventDate
-                          ? new Date(event.eventDate).toLocaleDateString()
-                          : 'Date TBD'}
-                        {event.eventTimeStart &&
-                          ` • ${event.eventTimeStart}${
-                            event.eventTimeEnd ? `–${event.eventTimeEnd}` : ''
-                          }`}
-                      </span>
-                      <span className={styles.eventMetaSecondary}>
-                        {event.customerName || 'No customer yet'}
-                        {event.ratePackage && ` • ${event.ratePackage}`}
-                      </span>
-                    </div>
-                    <div className={styles.eventCardAside}>
-                      {event.estimatedGuestCount && (
-                        <span className={styles.pill}>
-                          {event.estimatedGuestCount} guests
-                        </span>
-                      )}
-                      {event.paymentSummary && (
-                        <span className={styles.pillMuted}>
-                          {event.paymentSummary}
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className={styles.calendar}>
+                  <div className={styles.calendarHeader}>
+                    <button
+                      type="button"
+                      className={styles.calendarNavBtn}
+                      onClick={() => navigateMonth(-1)}
+                    >
+                      &larr;
+                    </button>
+                    <span className={styles.calendarMonth}>{monthYearLabel}</span>
+                    <button
+                      type="button"
+                      className={styles.calendarNavBtn}
+                      onClick={() => navigateMonth(1)}
+                    >
+                      &rarr;
+                    </button>
+                  </div>
+                  <div className={styles.calendarGrid}>
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                      <div key={day} className={styles.calendarDayHeader}>
+                        {day}
+                      </div>
+                    ))}
+                    {calendarDays.map(({ date, isCurrentMonth }, idx) => {
+                      const dateKey = formatDateKey(date)
+                      const dayEvents = eventsByDate[dateKey] || []
+                      return (
+                        <div
+                          key={idx}
+                          className={`${styles.calendarDay} ${
+                            !isCurrentMonth ? styles.calendarDayOutside : ''
+                          } ${isToday(date) ? styles.calendarDayToday : ''}`}
+                        >
+                          <span className={styles.calendarDayNumber}>{date.getDate()}</span>
+                          <div className={styles.calendarEvents}>
+                            {dayEvents.map((event) => (
+                              <button
+                                key={event.id}
+                                type="button"
+                                className={`${styles.calendarEvent} ${
+                                  activeId === event.id ? styles.calendarEventActive : ''
+                                }`}
+                                onClick={() => setActiveId(event.id)}
+                                title={event.eventType || 'Untitled Event'}
+                              >
+                                {event.eventType || 'Untitled'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
 
               {activeEvent && (
                 <aside className={styles.detailPanel}>
