@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'No2Vance',
-  description: 'A minimal Next.js app',
+  title: 'Venue Booking Manager',
+  description: 'Capture and review booking details for a multi-use venue.',
 }
 
 export default function RootLayout({
