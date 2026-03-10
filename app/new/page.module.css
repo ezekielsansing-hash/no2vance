@@ -77,6 +77,45 @@
   margin-bottom: 0.15rem;
 }
 
+.sectionHeaderCollapsible {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.sectionHeaderCollapsible:hover .sectionTitle {
+  color: #444;
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.collapseIcon {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #666;
+  width: 1rem;
+  text-align: center;
+}
+
+.sectionContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
 .sectionTitle {
   font-size: 0.9rem;
   font-weight: 600;
@@ -146,27 +185,51 @@
   margin-top: 0.5rem;
 }
 
+.calculatedField {
+  padding: 0.45rem 0.6rem;
+  font-size: 0.83rem;
+  color: #1a1a1a;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+}
+
 .errorText {
   font-size: 0.7rem;
   color: #dc2626;
 }
 
+.statusSection {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #ddd;
+  background: #fff;
+}
+
+.statusLabel {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
 .segmented {
   display: inline-flex;
-  padding: 0.16rem;
+  padding: 0.2rem;
   border-radius: 0;
   border: 1px solid #ccc;
-  background: #fff;
-  gap: 0.1rem;
+  background: #f5f5f5;
+  gap: 0.2rem;
 }
 
 .segment {
   border: none;
   background: transparent;
-  color: #444;
-  padding: 0.24rem 0.7rem;
+  color: #666;
+  padding: 0.4rem 1rem;
   border-radius: 0;
-  font-size: 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 500;
   cursor: pointer;
   transition:
     background-color 120ms ease,
@@ -174,12 +237,13 @@
 }
 
 .segment:hover {
-  background: #f5f5f5;
+  background: #e5e5e5;
 }
 
 .segmentActive {
-  background: #1a1a1a;
-  color: #fff;
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.08);
 }
 
 .formFooter {

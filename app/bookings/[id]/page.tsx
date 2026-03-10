@@ -6,13 +6,17 @@ import { useParams, useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
 import {
   BookingStatus,
+  Customer,
   DEFAULT_EVENT_TYPES,
   EffortLevel,
   EMPTY_FORM,
   EventFormState,
   EventRecord,
+  loadCustomers,
   loadCustomEventTypes,
   loadEvents,
+  migrateExistingBookingsToCustomers,
+  saveCustomers,
   saveCustomEventType,
   saveEvents,
 } from '../../lib/events'
@@ -28,10 +32,42 @@ export default function EditBookingPage() {
   const [customEventTypes, setCustomEventTypes] = useState<string[]>([])
   const [showCustomEventType, setShowCustomEventType] = useState(false)
   const [customEventTypeInput, setCustomEventTypeInput] = useState('')
+  const [customers, setCustomers] = useState<Customer[]>([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('')
+  const [showNewCustomer, setShowNewCustomer] = useState(false)
+  const [logisticsOpen, setLogisticsOpen] = useState(true)
+  const [vendorsOpen, setVendorsOpen] = useState(true)
 
   useEffect(() => {
+    migrateExistingBookingsToCustomers()
     setCustomEventTypes(loadCustomEventTypes())
+    setCustomers(loadCustomers())
   }, [])
+
+  function handleCustomerSelect(customerId: string) {
+    if (customerId === '__new__') {
+      setShowNewCustomer(true)
+      setSelectedCustomerId('')
+      handleChange('customerId', undefined)
+      handleChange('customerName', '')
+      handleChange('customerContact', '')
+    } else if (customerId) {
+      setShowNewCustomer(false)
+      setSelectedCustomerId(customerId)
+      const customer = customers.find((c) => c.id === customerId)
+      if (customer) {
+        handleChange('customerId', customer.id)
+        handleChange('customerName', customer.name)
+        handleChange('customerContact', customer.contact)
+      }
+    } else {
+      setShowNewCustomer(false)
+      setSelectedCustomerId('')
+      handleChange('customerId', undefined)
+      handleChange('customerName', '')
+      handleChange('customerContact', '')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -51,12 +87,20 @@ export default function EditBookingPage() {
       rest.ratePackage = formatCurrency(rest.ratePackage)
     }
     setForm(rest)
+    // Set selected customer if customerId exists
+    if (rest.customerId) {
+      setSelectedCustomerId(rest.customerId)
+    }
     // Check if event type is custom (not in default or saved custom types)
     const allKnownTypes = [...DEFAULT_EVENT_TYPES, ...loadCustomEventTypes()]
     if (rest.eventType && !allKnownTypes.includes(rest.eventType)) {
       setShowCustomEventType(true)
       setCustomEventTypeInput(rest.eventType)
     }
+    // Set collapsed state based on status (prospects collapsed, confirmed expanded)
+    const isConfirmed = rest.status === 'confirmed'
+    setLogisticsOpen(isConfirmed)
+    setVendorsOpen(isConfirmed)
     setLoaded(true)
   }, [id, router])
 
@@ -107,8 +151,6 @@ export default function EditBookingPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  const isProspect = form.status === 'prospect'
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate() || !id) return
@@ -118,12 +160,29 @@ export default function EditBookingPage() {
       saveCustomEventType(form.eventType)
     }
 
+    const now = new Date()
+    let customerId = form.customerId
+
+    // If adding new customer, create the customer record first
+    if (showNewCustomer && form.customerName && form.customerContact) {
+      const newCustomer: Customer = {
+        id: `cust-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+        name: form.customerName,
+        contact: form.customerContact,
+        createdAt: now.toISOString(),
+      }
+      const existingCustomers = loadCustomers()
+      saveCustomers([newCustomer, ...existingCustomers])
+      customerId = newCustomer.id
+    }
+
     const events = loadEvents()
     const updated: EventRecord[] = events.map((event) =>
       event.id === id
         ? {
             ...event,
             ...form,
+            customerId,
           }
         : event,
     )
@@ -179,32 +238,21 @@ export default function EditBookingPage() {
         <section className={styles.formPanel}>
           <h2 className={styles.panelTitle}>Event Details</h2>
           <form className={styles.form} onSubmit={handleSubmit}>
-            <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>Status</h3>
-              </div>
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <div className={styles.segmented}>
-                    {(['prospect', 'confirmed'] as BookingStatus[]).map((s) => (
-                      <button
-                        key={s}
-                        type="button"
-                        className={`${styles.segment} ${
-                          form.status === s ? styles.segmentActive : ''
-                        }`}
-                        onClick={() => handleChange('status', s)}
-                      >
-                        {s === 'prospect' ? 'Prospect' : 'Confirmed Booking'}
-                      </button>
-                    ))}
-                  </div>
-                  <span className={styles.sectionHint}>
-                    {isProspect
-                      ? 'Interested but no deposit yet'
-                      : 'Deposit received, booking confirmed'}
-                  </span>
-                </div>
+            <div className={styles.statusSection}>
+              <span className={styles.statusLabel}>Status</span>
+              <div className={styles.segmented}>
+                {(['prospect', 'confirmed'] as BookingStatus[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`${styles.segment} ${
+                      form.status === s ? styles.segmentActive : ''
+                    }`}
+                    onClick={() => handleChange('status', s)}
+                  >
+                    {s === 'prospect' ? 'Prospect' : 'Confirmed'}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -289,62 +337,80 @@ export default function EditBookingPage() {
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
                   <span className={styles.label}>
-                    Customer Name<span className={styles.required}>*</span>
+                    Customer<span className={styles.required}>*</span>
                   </span>
-                  <input
+                  <select
                     className={`${styles.input} ${
                       errors.customerName ? styles.inputError : ''
                     }`}
-                    placeholder="First Last"
-                    value={form.customerName}
-                    onChange={(e) =>
-                      handleChange('customerName', e.target.value)
-                    }
-                  />
-                  {errors.customerName && (
+                    value={showNewCustomer ? '__new__' : selectedCustomerId}
+                    onChange={(e) => handleCustomerSelect(e.target.value)}
+                  >
+                    <option value="">Select customer...</option>
+                    {customers.map((customer) => (
+                      <option key={customer.id} value={customer.id}>
+                        {customer.name} - {formatPhoneNumber(customer.contact)}
+                      </option>
+                    ))}
+                    <option value="__new__">+ Add new customer...</option>
+                  </select>
+                  {errors.customerName && !showNewCustomer && (
                     <span className={styles.errorText}>
                       {errors.customerName}
                     </span>
                   )}
                 </label>
-
-                <label className={styles.field}>
-                  <span className={styles.label}>
-                    Customer Contact
-                    <span className={styles.required}>*</span>
-                  </span>
-                  <input
-                    type="tel"
-                    className={`${styles.input} ${
-                      errors.customerContact ? styles.inputError : ''
-                    }`}
-                    placeholder="(555) 123-4567"
-                    value={form.customerContact}
-                    onChange={(e) =>
-                      handleChange('customerContact', formatPhoneNumber(e.target.value))
-                    }
-                  />
-                  {errors.customerContact && (
-                    <span className={styles.errorText}>
-                      {errors.customerContact}
-                    </span>
-                  )}
-                </label>
               </div>
 
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Rate / Package</span>
-                  <input
-                    className={styles.input}
-                    placeholder="$2,500"
-                    value={form.ratePackage}
-                    onChange={(e) =>
-                      handleChange('ratePackage', formatCurrency(e.target.value))
-                    }
-                  />
-                </label>
+              {showNewCustomer && (
+                <div className={styles.fieldRow}>
+                  <label className={styles.field}>
+                    <span className={styles.label}>
+                      Customer Name<span className={styles.required}>*</span>
+                    </span>
+                    <input
+                      className={`${styles.input} ${
+                        errors.customerName ? styles.inputError : ''
+                      }`}
+                      placeholder="First Last"
+                      value={form.customerName}
+                      onChange={(e) =>
+                        handleChange('customerName', e.target.value)
+                      }
+                    />
+                    {errors.customerName && (
+                      <span className={styles.errorText}>
+                        {errors.customerName}
+                      </span>
+                    )}
+                  </label>
 
+                  <label className={styles.field}>
+                    <span className={styles.label}>
+                      Customer Contact
+                      <span className={styles.required}>*</span>
+                    </span>
+                    <input
+                      type="tel"
+                      className={`${styles.input} ${
+                        errors.customerContact ? styles.inputError : ''
+                      }`}
+                      placeholder="(555) 123-4567"
+                      value={form.customerContact}
+                      onChange={(e) =>
+                        handleChange('customerContact', formatPhoneNumber(e.target.value))
+                      }
+                    />
+                    {errors.customerContact && (
+                      <span className={styles.errorText}>
+                        {errors.customerContact}
+                      </span>
+                    )}
+                  </label>
+                </div>
+              )}
+
+              <div className={styles.fieldRow}>
                 <label className={styles.field}>
                   <span className={styles.label}>Lead Source</span>
                   <input
@@ -356,9 +422,7 @@ export default function EditBookingPage() {
                     }
                   />
                 </label>
-              </div>
 
-              <div className={styles.fieldRow}>
                 <label className={styles.field}>
                   <span className={styles.label}>How They Heard About Us</span>
                   <input
@@ -372,192 +436,240 @@ export default function EditBookingPage() {
             </div>
 
             <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>Logistics</h3>
+              <button
+                type="button"
+                className={styles.sectionHeaderCollapsible}
+                onClick={() => setLogisticsOpen(!logisticsOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className={styles.collapseIcon}>{logisticsOpen ? '−' : '+'}</span>
+                  <h3 className={styles.sectionTitle}>Logistics</h3>
+                </div>
                 <span className={styles.sectionHint}>
                   Payments, timing, and layout
                 </span>
-              </div>
+              </button>
 
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Date of Deposit</span>
-                  <input
-                    type="date"
-                    className={styles.input}
-                    value={form.dateOfDeposit}
-                    onClick={() => handleDateClick('dateOfDeposit')}
-                    onChange={(e) =>
-                      handleChange('dateOfDeposit', e.target.value)
-                    }
-                  />
-                </label>
+              {logisticsOpen && (
+                <div className={styles.sectionContent}>
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Rate / Package</span>
+                      <input
+                        className={styles.input}
+                        placeholder="$2,500"
+                        value={form.ratePackage}
+                        onChange={(e) =>
+                          handleChange('ratePackage', formatCurrency(e.target.value))
+                        }
+                      />
+                    </label>
 
-                <label className={styles.field}>
-                  <span className={styles.label}>Contract Link</span>
-                  <input
-                    className={styles.input}
-                    placeholder="URL to contract"
-                    value={form.contractLink}
-                    onChange={(e) =>
-                      handleChange('contractLink', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Payment Details</span>
-                  <textarea
-                    className={`${styles.input} ${styles.textarea}`}
-                    placeholder="Deposit amount, remaining balance, due dates..."
-                    value={form.paymentDetails}
-                    onChange={(e) =>
-                      handleChange('paymentDetails', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Airbnb</span>
-                  <input
-                    className={styles.input}
-                    placeholder="Listing link or notes"
-                    value={form.airbnb}
-                    onChange={(e) => handleChange('airbnb', e.target.value)}
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span className={styles.label}>Estimated Guest Count</span>
-                  <input
-                    type="number"
-                    min={0}
-                    className={styles.input}
-                    value={form.estimatedGuestCount}
-                    onChange={(e) =>
-                      handleChange('estimatedGuestCount', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Event Time (Start)</span>
-                  <input
-                    type="time"
-                    className={styles.input}
-                    value={form.eventTimeStart}
-                    onChange={(e) =>
-                      handleChange('eventTimeStart', e.target.value)
-                    }
-                  />
-                </label>
-
-                <label className={styles.field}>
-                  <span className={styles.label}>Event Time (End)</span>
-                  <input
-                    type="time"
-                    className={styles.input}
-                    value={form.eventTimeEnd}
-                    onChange={(e) =>
-                      handleChange('eventTimeEnd', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Setup &amp; Layout</span>
-                  <textarea
-                    className={`${styles.input} ${styles.textarea}`}
-                    placeholder="Floorplan, tables, decor notes..."
-                    value={form.setupLayout}
-                    onChange={(e) =>
-                      handleChange('setupLayout', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <div className={styles.field}>
-                  <span className={styles.label}>Level of Effort</span>
-                  <div className={styles.segmented}>
-                    {(['S', 'M', 'L'] as EffortLevel[]).map((level) => (
-                      <button
-                        key={level}
-                        type="button"
-                        className={`${styles.segment} ${
-                          form.effortLevel === level
-                            ? styles.segmentActive
-                            : ''
-                        }`}
-                        onClick={() => handleChange('effortLevel', level)}
-                      >
-                        {level}
-                      </button>
-                    ))}
+                    <label className={styles.field}>
+                      <span className={styles.label}>Deposit Amount</span>
+                      <input
+                        className={styles.input}
+                        placeholder="$500"
+                        value={form.depositAmount}
+                        onChange={(e) =>
+                          handleChange('depositAmount', formatCurrency(e.target.value))
+                        }
+                      />
+                    </label>
                   </div>
-                  <span className={styles.sectionHint}>
-                    S = simple, M = moderate, L = high touch
-                  </span>
+
+                  <div className={styles.fieldRow}>
+                    <div className={styles.field}>
+                      <span className={styles.label}>Balance Due</span>
+                      <div className={styles.calculatedField}>
+                        {(() => {
+                          const rate = parseInt(form.ratePackage.replace(/[^\d]/g, '') || '0')
+                          const deposit = parseInt(form.depositAmount.replace(/[^\d]/g, '') || '0')
+                          const balance = rate - deposit
+                          return balance > 0 ? `$${balance.toLocaleString()}` : '—'
+                        })()}
+                      </div>
+                    </div>
+
+                    <label className={styles.field}>
+                      <span className={styles.label}>Date of Deposit</span>
+                      <input
+                        type="date"
+                        className={styles.input}
+                        value={form.dateOfDeposit}
+                        onClick={() => handleDateClick('dateOfDeposit')}
+                        onChange={(e) =>
+                          handleChange('dateOfDeposit', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Contract Link</span>
+                      <input
+                        className={styles.input}
+                        placeholder="URL to contract"
+                        value={form.contractLink}
+                        onChange={(e) =>
+                          handleChange('contractLink', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Airbnb</span>
+                      <input
+                        className={styles.input}
+                        placeholder="Listing link or notes"
+                        value={form.airbnb}
+                        onChange={(e) => handleChange('airbnb', e.target.value)}
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span className={styles.label}>Estimated Guest Count</span>
+                      <input
+                        type="number"
+                        min={0}
+                        className={styles.input}
+                        value={form.estimatedGuestCount}
+                        onChange={(e) =>
+                          handleChange('estimatedGuestCount', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Event Time (Start)</span>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={form.eventTimeStart}
+                        onChange={(e) =>
+                          handleChange('eventTimeStart', e.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span className={styles.label}>Event Time (End)</span>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={form.eventTimeEnd}
+                        onChange={(e) =>
+                          handleChange('eventTimeEnd', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Setup &amp; Layout</span>
+                      <textarea
+                        className={`${styles.input} ${styles.textarea}`}
+                        placeholder="Floorplan, tables, decor notes..."
+                        value={form.setupLayout}
+                        onChange={(e) =>
+                          handleChange('setupLayout', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <div className={styles.field}>
+                      <span className={styles.label}>Level of Effort</span>
+                      <div className={styles.segmented}>
+                        {(['S', 'M', 'L'] as EffortLevel[]).map((level) => (
+                          <button
+                            key={level}
+                            type="button"
+                            className={`${styles.segment} ${
+                              form.effortLevel === level
+                                ? styles.segmentActive
+                                : ''
+                            }`}
+                            onClick={() => handleChange('effortLevel', level)}
+                          >
+                            {level}
+                          </button>
+                        ))}
+                      </div>
+                      <span className={styles.sectionHint}>
+                        S = simple, M = moderate, L = high touch
+                      </span>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className={styles.section}>
-              <div className={styles.sectionHeader}>
-                <h3 className={styles.sectionTitle}>Vendors &amp; Notes</h3>
+              <button
+                type="button"
+                className={styles.sectionHeaderCollapsible}
+                onClick={() => setVendorsOpen(!vendorsOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className={styles.collapseIcon}>{vendorsOpen ? '−' : '+'}</span>
+                  <h3 className={styles.sectionTitle}>Vendors &amp; Notes</h3>
+                </div>
                 <span className={styles.sectionHint}>
                   Keep track of partners and follow-ups
                 </span>
-              </div>
+              </button>
 
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Vendor List</span>
-                  <textarea
-                    className={`${styles.input} ${styles.textarea}`}
-                    placeholder="Caterer, DJ, planner, florist..."
-                    value={form.vendorList}
-                    onChange={(e) => handleChange('vendorList', e.target.value)}
-                  />
-                </label>
-              </div>
+              {vendorsOpen && (
+                <div className={styles.sectionContent}>
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Vendor List</span>
+                      <textarea
+                        className={`${styles.input} ${styles.textarea}`}
+                        placeholder="Caterer, DJ, planner, florist..."
+                        value={form.vendorList}
+                        onChange={(e) => handleChange('vendorList', e.target.value)}
+                      />
+                    </label>
+                  </div>
 
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Photo Folder</span>
-                  <input
-                    className={styles.input}
-                    placeholder="Drive / Dropbox / iCloud link"
-                    value={form.photoFolder}
-                    onChange={(e) =>
-                      handleChange('photoFolder', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Photo Folder</span>
+                      <input
+                        className={styles.input}
+                        placeholder="Drive / Dropbox / iCloud link"
+                        value={form.photoFolder}
+                        onChange={(e) =>
+                          handleChange('photoFolder', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
 
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
-                  <span className={styles.label}>Post-Event Notes</span>
-                  <textarea
-                    className={`${styles.input} ${styles.textarea}`}
-                    placeholder="What worked well, what to improve..."
-                    value={form.postEventNotes}
-                    onChange={(e) =>
-                      handleChange('postEventNotes', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>Post-Event Notes</span>
+                      <textarea
+                        className={`${styles.input} ${styles.textarea}`}
+                        placeholder="What worked well, what to improve..."
+                        value={form.postEventNotes}
+                        onChange={(e) =>
+                          handleChange('postEventNotes', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
 
             <footer className={styles.formFooter}>

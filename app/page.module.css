@@ -67,6 +67,24 @@
   gap: 1.5rem;
 }
 
+.dateFilter {
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #1a1a1a;
+  outline: none;
+}
+
+.dateFilter:focus {
+  border-color: #1a1a1a;
+}
+
+.dateRangeSeparator {
+  font-size: 0.75rem;
+  color: #666;
+}
+
 .formPanel,
 .listPanel {
   background: #fff;
@@ -563,6 +581,30 @@
   .listLayout {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* Navigation */
+.navLinks {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.navLink {
+  padding: 0.38rem 0.75rem;
+  font-size: 0.8rem;
+  color: #666;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.navLink:hover {
+  color: #1a1a1a;
+}
+
+.navLinkActive {
+  color: #1a1a1a;
+  border-color: #1a1a1a;
 }
 
 /* View Toggle */

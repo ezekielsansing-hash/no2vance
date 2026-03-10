@@ -4,7 +4,14 @@ import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './page.module.css'
-import { EventRecord, loadEvents, saveEvents } from './lib/events'
+import {
+  Customer,
+  EventRecord,
+  loadCustomers,
+  loadEvents,
+  migrateExistingBookingsToCustomers,
+  saveEvents,
+} from './lib/events'
 
 type ViewMode = 'list' | 'calendar'
 type SortOrder = 'asc' | 'desc'
@@ -25,18 +32,54 @@ function formatCurrency(value: string): string {
   return '$' + num.toLocaleString('en-US')
 }
 
+function formatDate(dateStr: string): string {
+  if (!dateStr) return ''
+  // Simple string formatting - no Date parsing to avoid timezone issues
+  const [year, month, day] = dateStr.split('-')
+  return `${parseInt(month)}/${parseInt(day)}/${year}`
+}
+
+function formatTime(timeStr: string): string {
+  if (!timeStr) return ''
+  const [hours, minutes] = timeStr.split(':').map(Number)
+  const period = hours >= 12 ? 'PM' : 'AM'
+  const hour12 = hours % 12 || 12
+  return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`
+}
+
 export default function Home() {
   const [events, setEvents] = useState<EventRecord[]>([])
+  const [customers, setCustomers] = useState<Customer[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [calendarDate, setCalendarDate] = useState(() => new Date())
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
   const [hidePast, setHidePast] = useState(true)
+  const [dateFrom, setDateFrom] = useState('')
+  const [dateTo, setDateTo] = useState('')
 
   useEffect(() => {
+    migrateExistingBookingsToCustomers()
     const initial = loadEvents()
     setEvents(initial)
+    setCustomers(loadCustomers())
   }, [])
+
+  function getCustomerName(event: EventRecord): string {
+    if (event.customerId) {
+      const customer = customers.find((c) => c.id === event.customerId)
+      if (customer) return customer.name
+    }
+    return event.customerName || 'No customer yet'
+  }
+
+  function getCustomerContact(event: EventRecord): string {
+    if (event.customerId) {
+      const customer = customers.find((c) => c.id === event.customerId)
+      if (customer) return customer.contact
+    }
+    return event.customerContact || ''
+  }
 
   const todayStr = useMemo(() => {
     const today = new Date()
@@ -48,7 +91,14 @@ export default function Home() {
 
   const sortedEvents = useMemo(() => {
     let filtered = events
-    if (hidePast) {
+    if (dateFrom || dateTo) {
+      filtered = events.filter((e) => {
+        if (!e.eventDate) return false
+        const eventDate = e.eventDate.slice(0, 10)
+        return (!dateFrom || eventDate >= dateFrom) &&
+               (!dateTo || eventDate <= dateTo)
+      })
+    } else if (hidePast) {
       filtered = events.filter((e) => !e.eventDate || e.eventDate >= todayStr)
     }
     return [...filtered].sort((a, b) => {
@@ -60,11 +110,12 @@ export default function Home() {
       const cmp = dateA.localeCompare(dateB)
       return sortOrder === 'asc' ? cmp : -cmp
     })
-  }, [events, sortOrder, hidePast, todayStr])
+  }, [events, sortOrder, hidePast, todayStr, dateFrom, dateTo])
 
   const pastEventCount = useMemo(() => {
     return events.filter((e) => e.eventDate && e.eventDate < todayStr).length
   }, [events, todayStr])
+
 
   useEffect(() => {
     if (sortedEvents.length > 0 && !activeId) {
@@ -83,11 +134,12 @@ export default function Home() {
 
     sortedEvents.forEach((event) => {
       if (event.eventDate) {
-        const date = new Date(event.eventDate)
-        const year = date.getFullYear().toString()
-        const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        // Parse as local time to avoid timezone shifts
+        const [year, month] = event.eventDate.split('-').map(Number)
+        const yearStr = year.toString()
+        const monthKey = `${yearStr}-${String(month).padStart(2, '0')}`
 
-        byYear[year] = (byYear[year] || 0) + 1
+        byYear[yearStr] = (byYear[yearStr] || 0) + 1
         byMonth[monthKey] = (byMonth[monthKey] || 0) + 1
       }
     })
@@ -132,6 +184,19 @@ export default function Home() {
       const currentEvents = loadEvents()
       return currentEvents[0]?.id ?? null
     })
+  }
+
+  function handleDateFromChange(date: string) {
+    setDateFrom(date)
+    if (date) {
+      const parsed = new Date(date + 'T00:00:00')
+      setCalendarDate(parsed)
+    }
+  }
+
+  function clearDateFilter() {
+    setDateFrom('')
+    setDateTo('')
   }
 
   function handleConvert(id: string) {
@@ -248,6 +313,14 @@ export default function Home() {
             />
           </div>
           <div className={styles.headerActions}>
+            <div className={styles.navLinks}>
+              <Link href="/" className={`${styles.navLink} ${styles.navLinkActive}`}>
+                Bookings
+              </Link>
+              <Link href="/customers" className={styles.navLink}>
+                Customers
+              </Link>
+            </div>
             <div className={styles.viewToggle}>
               <button
                 type="button"
@@ -312,7 +385,31 @@ export default function Home() {
             <h2 className={styles.panelTitle}>Saved Bookings</h2>
             {events.length > 0 && (
               <div className={styles.panelControls}>
-                {pastEventCount > 0 && (
+                <input
+                  type="date"
+                  className={styles.dateFilter}
+                  value={dateFrom}
+                  onChange={(e) => handleDateFromChange(e.target.value)}
+                  title="From date"
+                />
+                <span className={styles.dateRangeSeparator}>to</span>
+                <input
+                  type="date"
+                  className={styles.dateFilter}
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  title="To date"
+                />
+                {(dateFrom || dateTo) && (
+                  <button
+                    type="button"
+                    className={styles.filterBtn}
+                    onClick={clearDateFilter}
+                  >
+                    Clear
+                  </button>
+                )}
+                {!dateFrom && !dateTo && pastEventCount > 0 && (
                   <button
                     type="button"
                     className={`${styles.filterBtn} ${hidePast ? styles.filterBtnActive : ''}`}
@@ -352,7 +449,7 @@ export default function Home() {
                       <div className={styles.eventCardMain}>
                         <div className={styles.eventTitleRow}>
                           <span className={styles.eventType}>
-                            {event.customerName || 'No customer yet'}
+                            {getCustomerName(event)}
                           </span>
                           <span className={`${styles.pill} ${
                             event.status === 'prospect' ? styles.pillProspect : styles.pillConfirmed
@@ -368,10 +465,10 @@ export default function Home() {
                         <span className={styles.eventMetaPrimary}>
                           {event.eventType || 'Untitled Event'}
                           {event.eventDate &&
-                            ` • ${new Date(event.eventDate).toLocaleDateString()}`}
+                            ` • ${formatDate(event.eventDate)}`}
                           {event.eventTimeStart &&
-                            ` • ${event.eventTimeStart}${
-                              event.eventTimeEnd ? `–${event.eventTimeEnd}` : ''
+                            ` • ${formatTime(event.eventTimeStart)}${
+                              event.eventTimeEnd ? `–${formatTime(event.eventTimeEnd)}` : ''
                             }`}
                         </span>
                         <span className={styles.eventMetaSecondary}>
@@ -451,7 +548,7 @@ export default function Home() {
                   <div className={styles.detailHeader}>
                     <div>
                       <h3 className={styles.detailTitle}>
-                        {activeEvent.customerName || 'No customer yet'}
+                        {getCustomerName(activeEvent)}
                       </h3>
                       <p className={styles.detailSubtitle}>
                         {activeEvent.eventType || 'Untitled Event'}
@@ -487,8 +584,8 @@ export default function Home() {
                     <div>
                       <dt>Contact</dt>
                       <dd>
-                        {activeEvent.customerContact
-                          ? formatPhoneNumber(activeEvent.customerContact)
+                        {getCustomerContact(activeEvent)
+                          ? formatPhoneNumber(getCustomerContact(activeEvent))
                           : '—'}
                       </dd>
                     </div>
@@ -496,7 +593,7 @@ export default function Home() {
                       <dt>Date of Event</dt>
                       <dd>
                         {activeEvent.eventDate
-                          ? new Date(activeEvent.eventDate).toLocaleDateString()
+                          ? formatDate(activeEvent.eventDate)
                           : '—'}
                       </dd>
                     </div>
@@ -504,25 +601,40 @@ export default function Home() {
                       <dt>Time</dt>
                       <dd>
                         {activeEvent.eventTimeStart || activeEvent.eventTimeEnd
-                          ? `${activeEvent.eventTimeStart || 'Start'}${
+                          ? `${activeEvent.eventTimeStart ? formatTime(activeEvent.eventTimeStart) : 'Start'}${
                               activeEvent.eventTimeEnd
-                                ? ` – ${activeEvent.eventTimeEnd}`
+                                ? ` – ${formatTime(activeEvent.eventTimeEnd)}`
                                 : ''
                             }`
                           : '—'}
                       </dd>
                     </div>
                     <div>
-                      <dt>Date of Deposit</dt>
+                      <dt>Rate / Package</dt>
+                      <dd>{formatCurrency(activeEvent.ratePackage) || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>Deposit Amount</dt>
+                      <dd>{formatCurrency(activeEvent.depositAmount) || '—'}</dd>
+                    </div>
+                    <div>
+                      <dt>Balance Due</dt>
                       <dd>
-                        {activeEvent.dateOfDeposit
-                          ? new Date(activeEvent.dateOfDeposit).toLocaleDateString()
-                          : '—'}
+                        {(() => {
+                          const rate = parseInt((activeEvent.ratePackage || '').replace(/[^\d]/g, '') || '0')
+                          const deposit = parseInt((activeEvent.depositAmount || '').replace(/[^\d]/g, '') || '0')
+                          const balance = rate - deposit
+                          return balance > 0 ? `$${balance.toLocaleString()}` : '—'
+                        })()}
                       </dd>
                     </div>
                     <div>
-                      <dt>Rate / Package</dt>
-                      <dd>{formatCurrency(activeEvent.ratePackage) || '—'}</dd>
+                      <dt>Date of Deposit</dt>
+                      <dd>
+                        {activeEvent.dateOfDeposit
+                          ? formatDate(activeEvent.dateOfDeposit)
+                          : '—'}
+                      </dd>
                     </div>
                     <div>
                       <dt>Level of Effort</dt>
@@ -547,10 +659,6 @@ export default function Home() {
                     <div className={styles.detailFull}>
                       <dt>Setup &amp; Layout</dt>
                       <dd>{activeEvent.setupLayout || '—'}</dd>
-                    </div>
-                    <div className={styles.detailFull}>
-                      <dt>Payment Details</dt>
-                      <dd>{activeEvent.paymentDetails || '—'}</dd>
                     </div>
                     <div className={styles.detailFull}>
                       <dt>Vendor List</dt>
