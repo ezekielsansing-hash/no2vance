@@ -16,6 +16,15 @@ function formatPhoneNumber(value: string): string {
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
 }
 
+function formatCurrency(value: string): string {
+  if (!value) return ''
+  if (value.startsWith('$')) return value
+  const digits = value.replace(/[^\d]/g, '')
+  if (!digits) return value
+  const num = parseInt(digits, 10)
+  return '$' + num.toLocaleString('en-US')
+}
+
 export default function Home() {
   const [events, setEvents] = useState<EventRecord[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
@@ -366,7 +375,7 @@ export default function Home() {
                             }`}
                         </span>
                         <span className={styles.eventMetaSecondary}>
-                          {event.ratePackage || ''}
+                          {formatCurrency(event.ratePackage) || ''}
                         </span>
                       </div>
                       <div className={styles.eventCardAside}>
@@ -513,7 +522,7 @@ export default function Home() {
                     </div>
                     <div>
                       <dt>Rate / Package</dt>
-                      <dd>{activeEvent.ratePackage || '—'}</dd>
+                      <dd>{formatCurrency(activeEvent.ratePackage) || '—'}</dd>
                     </div>
                     <div>
                       <dt>Level of Effort</dt>

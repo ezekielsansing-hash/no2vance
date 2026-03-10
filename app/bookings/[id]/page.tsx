@@ -46,6 +46,10 @@ export default function EditBookingPage() {
     if (rest.customerContact) {
       rest.customerContact = formatPhoneNumber(rest.customerContact)
     }
+    // Format rate/package as currency if it exists
+    if (rest.ratePackage && !rest.ratePackage.startsWith('$')) {
+      rest.ratePackage = formatCurrency(rest.ratePackage)
+    }
     setForm(rest)
     // Check if event type is custom (not in default or saved custom types)
     const allKnownTypes = [...DEFAULT_EVENT_TYPES, ...loadCustomEventTypes()]
@@ -78,6 +82,13 @@ export default function EditBookingPage() {
     if (digits.length <= 3) return digits
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
+  }
+
+  function formatCurrency(value: string): string {
+    const digits = value.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    const num = parseInt(digits, 10)
+    return '$' + num.toLocaleString('en-US')
   }
 
   function validate(): boolean {
@@ -326,10 +337,10 @@ export default function EditBookingPage() {
                   <span className={styles.label}>Rate / Package</span>
                   <input
                     className={styles.input}
-                    placeholder="Sunday rate"
+                    placeholder="$2,500"
                     value={form.ratePackage}
                     onChange={(e) =>
-                      handleChange('ratePackage', e.target.value)
+                      handleChange('ratePackage', formatCurrency(e.target.value))
                     }
                   />
                 </label>

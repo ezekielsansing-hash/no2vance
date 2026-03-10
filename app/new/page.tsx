@@ -53,6 +53,13 @@ export default function NewBookingPage() {
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
   }
 
+  function formatCurrency(value: string): string {
+    const digits = value.replace(/[^\d]/g, '')
+    if (!digits) return ''
+    const num = parseInt(digits, 10)
+    return '$' + num.toLocaleString('en-US')
+  }
+
   function validate(): boolean {
     const nextErrors: Record<string, string> = {}
 
@@ -284,10 +291,10 @@ export default function NewBookingPage() {
                   <span className={styles.label}>Rate / Package</span>
                   <input
                     className={styles.input}
-                    placeholder="Sunday rate"
+                    placeholder="$2,500"
                     value={form.ratePackage}
                     onChange={(e) =>
-                      handleChange('ratePackage', e.target.value)
+                      handleChange('ratePackage', formatCurrency(e.target.value))
                     }
                   />
                 </label>
