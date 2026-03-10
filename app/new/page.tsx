@@ -63,6 +63,14 @@ export default function NewBookingPage() {
     setErrors({})
   }
 
+  function handleDateClick(key: 'eventDate' | 'dateOfDeposit') {
+    // Clear invalid partial dates so the picker starts fresh
+    const value = form[key]
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      handleChange(key, '')
+    }
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -136,6 +144,7 @@ export default function NewBookingPage() {
                       errors.eventDate ? styles.inputError : ''
                     }`}
                     value={form.eventDate}
+                    onClick={() => handleDateClick('eventDate')}
                     onChange={(e) => handleChange('eventDate', e.target.value)}
                   />
                   {errors.eventDate && (
@@ -155,7 +164,7 @@ export default function NewBookingPage() {
                     className={`${styles.input} ${
                       errors.customerName ? styles.inputError : ''
                     }`}
-                    placeholder="Zeek Sansing"
+                    placeholder="First Last"
                     value={form.customerName}
                     onChange={(e) =>
                       handleChange('customerName', e.target.value)
@@ -245,6 +254,7 @@ export default function NewBookingPage() {
                     type="date"
                     className={styles.input}
                     value={form.dateOfDeposit}
+                    onClick={() => handleDateClick('dateOfDeposit')}
                     onChange={(e) =>
                       handleChange('dateOfDeposit', e.target.value)
                     }

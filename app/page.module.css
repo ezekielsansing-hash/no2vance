@@ -63,13 +63,102 @@
   padding: 0;
 }
 
+.panelHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
 .panelTitle {
   font-size: 0.9rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.18em;
   color: #666;
-  margin-bottom: 0.8rem;
+}
+
+.panelControls {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.sortBtn,
+.filterBtn {
+  border: 1px solid #ccc;
+  background: #fff;
+  color: #444;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.sortBtn:hover,
+.filterBtn:hover {
+  background: #f5f5f5;
+}
+
+.filterBtnActive {
+  background: #f5f5f5;
+  border-color: #999;
+}
+
+/* Stats Section */
+.statsSection {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+  padding: 0.75rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 1px solid #eee;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.statValue {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 0.72rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.statGroupLabel {
+  font-size: 0.72rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.statTags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.statTag {
+  font-size: 0.72rem;
+  color: #444;
+  background: #f5f5f5;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #ddd;
 }
 
 .form {
@@ -525,7 +614,7 @@
 
 .calendarGrid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
 }
 
 .calendarDayHeader {
@@ -650,6 +739,11 @@
 
   .detailActions {
     flex-direction: column;
+  }
+
+  .statsSection {
+    flex-direction: column;
+    gap: 0.75rem;
   }
 
   .calendarDay {

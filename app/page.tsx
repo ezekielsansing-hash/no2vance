@@ -6,25 +6,93 @@ import styles from './page.module.css'
 import { EventRecord, loadEvents, saveEvents } from './lib/events'
 
 type ViewMode = 'list' | 'calendar'
+type SortOrder = 'asc' | 'desc'
 
 export default function Home() {
   const [events, setEvents] = useState<EventRecord[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [calendarDate, setCalendarDate] = useState(() => new Date())
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
+  const [hidePast, setHidePast] = useState(true)
 
   useEffect(() => {
     const initial = loadEvents()
     setEvents(initial)
-    if (initial[0]) setActiveId(initial[0].id)
   }, [])
+
+  const todayStr = useMemo(() => {
+    const today = new Date()
+    const year = today.getFullYear()
+    const month = String(today.getMonth() + 1).padStart(2, '0')
+    const day = String(today.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+
+  const sortedEvents = useMemo(() => {
+    let filtered = events
+    if (hidePast) {
+      filtered = events.filter((e) => !e.eventDate || e.eventDate >= todayStr)
+    }
+    return [...filtered].sort((a, b) => {
+      const dateA = a.eventDate || ''
+      const dateB = b.eventDate || ''
+      if (!dateA && !dateB) return 0
+      if (!dateA) return 1
+      if (!dateB) return -1
+      const cmp = dateA.localeCompare(dateB)
+      return sortOrder === 'asc' ? cmp : -cmp
+    })
+  }, [events, sortOrder, hidePast, todayStr])
+
+  const pastEventCount = useMemo(() => {
+    return events.filter((e) => e.eventDate && e.eventDate < todayStr).length
+  }, [events, todayStr])
+
+  useEffect(() => {
+    if (sortedEvents.length > 0 && !activeId) {
+      setActiveId(sortedEvents[0].id)
+    }
+  }, [sortedEvents, activeId])
 
   const activeEvent = useMemo(
     () => events.find((e) => e.id === activeId) ?? null,
     [events, activeId],
   )
 
+  const eventStats = useMemo(() => {
+    const byYear: Record<string, number> = {}
+    const byMonth: Record<string, number> = {}
+
+    sortedEvents.forEach((event) => {
+      if (event.eventDate) {
+        const date = new Date(event.eventDate)
+        const year = date.getFullYear().toString()
+        const monthKey = `${year}-${String(date.getMonth() + 1).padStart(2, '0')}`
+
+        byYear[year] = (byYear[year] || 0) + 1
+        byMonth[monthKey] = (byMonth[monthKey] || 0) + 1
+      }
+    })
+
+    const sortedYears = Object.keys(byYear).sort((a, b) => b.localeCompare(a))
+    const sortedMonths = Object.keys(byMonth).sort((a, b) => b.localeCompare(a))
+
+    return {
+      total: sortedEvents.length,
+      byYear,
+      byMonth,
+      sortedYears,
+      sortedMonths,
+    }
+  }, [sortedEvents])
+
   function handleDelete(id: string) {
+    const event = events.find((e) => e.id === id)
+    const name = event?.eventType || 'this event'
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) {
+      return
+    }
     setEvents((prev) => {
       const next = prev.filter((e) => e.id !== id)
       saveEvents(next)
@@ -118,6 +186,12 @@ export default function Home() {
     year: 'numeric',
   })
 
+  function formatMonthKey(key: string): string {
+    const [year, month] = key.split('-')
+    const date = new Date(parseInt(year), parseInt(month) - 1)
+    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -151,8 +225,59 @@ export default function Home() {
           </div>
         </header>
 
+        {sortedEvents.length > 0 && (
+          <section className={styles.statsSection}>
+            <div className={styles.statCard}>
+              <span className={styles.statValue}>{eventStats.total}</span>
+              <span className={styles.statLabel}>Total Events</span>
+            </div>
+            <div className={styles.statGroup}>
+              <span className={styles.statGroupLabel}>By Year</span>
+              <div className={styles.statTags}>
+                {eventStats.sortedYears.map((year) => (
+                  <span key={year} className={styles.statTag}>
+                    {year}: {eventStats.byYear[year]}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div className={styles.statGroup}>
+              <span className={styles.statGroupLabel}>By Month</span>
+              <div className={styles.statTags}>
+                {eventStats.sortedMonths.slice(0, 6).map((key) => (
+                  <span key={key} className={styles.statTag}>
+                    {formatMonthKey(key)}: {eventStats.byMonth[key]}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
         <section className={styles.listPanel}>
-          <h2 className={styles.panelTitle}>Saved Bookings</h2>
+          <div className={styles.panelHeader}>
+            <h2 className={styles.panelTitle}>Saved Bookings</h2>
+            {events.length > 0 && (
+              <div className={styles.panelControls}>
+                {pastEventCount > 0 && (
+                  <button
+                    type="button"
+                    className={`${styles.filterBtn} ${hidePast ? styles.filterBtnActive : ''}`}
+                    onClick={() => setHidePast((prev) => !prev)}
+                  >
+                    {hidePast ? `Show past (${pastEventCount})` : 'Hide past'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.sortBtn}
+                  onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                >
+                  Date {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
+            )}
+          </div>
 
           {events.length === 0 ? (
             <p className={styles.emptyState}>
@@ -162,7 +287,7 @@ export default function Home() {
             <div className={styles.listLayout}>
               {viewMode === 'list' ? (
                 <div className={styles.eventList}>
-                  {events.map((event) => (
+                  {sortedEvents.map((event) => (
                     <button
                       key={event.id}
                       type="button"

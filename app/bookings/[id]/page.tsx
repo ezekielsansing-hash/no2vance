@@ -86,6 +86,14 @@ export default function EditBookingPage() {
     setErrors({})
   }
 
+  function handleDateClick(key: 'eventDate' | 'dateOfDeposit') {
+    // Clear invalid partial dates so the picker starts fresh
+    const value = form[key]
+    if (value && !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      handleChange(key, '')
+    }
+  }
+
   if (!loaded) {
     return (
       <main className={styles.page}>
@@ -168,6 +176,7 @@ export default function EditBookingPage() {
                       errors.eventDate ? styles.inputError : ''
                     }`}
                     value={form.eventDate}
+                    onClick={() => handleDateClick('eventDate')}
                     onChange={(e) => handleChange('eventDate', e.target.value)}
                   />
                   {errors.eventDate && (
@@ -187,7 +196,7 @@ export default function EditBookingPage() {
                     className={`${styles.input} ${
                       errors.customerName ? styles.inputError : ''
                     }`}
-                    placeholder="Zeek Sansing"
+                    placeholder="First Last"
                     value={form.customerName}
                     onChange={(e) =>
                       handleChange('customerName', e.target.value)
@@ -277,6 +286,7 @@ export default function EditBookingPage() {
                     type="date"
                     className={styles.input}
                     value={form.dateOfDeposit}
+                    onClick={() => handleDateClick('dateOfDeposit')}
                     onChange={(e) =>
                       handleChange('dateOfDeposit', e.target.value)
                     }
