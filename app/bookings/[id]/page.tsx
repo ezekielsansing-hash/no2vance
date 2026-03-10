@@ -5,11 +5,15 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
 import {
+  BookingStatus,
+  DEFAULT_EVENT_TYPES,
   EffortLevel,
   EMPTY_FORM,
   EventFormState,
   EventRecord,
+  loadCustomEventTypes,
   loadEvents,
+  saveCustomEventType,
   saveEvents,
 } from '../../lib/events'
 
@@ -21,6 +25,13 @@ export default function EditBookingPage() {
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loaded, setLoaded] = useState(false)
+  const [customEventTypes, setCustomEventTypes] = useState<string[]>([])
+  const [showCustomEventType, setShowCustomEventType] = useState(false)
+  const [customEventTypeInput, setCustomEventTypeInput] = useState('')
+
+  useEffect(() => {
+    setCustomEventTypes(loadCustomEventTypes())
+  }, [])
 
   useEffect(() => {
     if (!id) return
@@ -31,7 +42,17 @@ export default function EditBookingPage() {
       return
     }
     const { id: _id, createdAt: _createdAt, ...rest } = existing
+    // Format phone number if it exists but isn't formatted
+    if (rest.customerContact) {
+      rest.customerContact = formatPhoneNumber(rest.customerContact)
+    }
     setForm(rest)
+    // Check if event type is custom (not in default or saved custom types)
+    const allKnownTypes = [...DEFAULT_EVENT_TYPES, ...loadCustomEventTypes()]
+    if (rest.eventType && !allKnownTypes.includes(rest.eventType)) {
+      setShowCustomEventType(true)
+      setCustomEventTypeInput(rest.eventType)
+    }
     setLoaded(true)
   }, [id, router])
 
@@ -47,21 +68,44 @@ export default function EditBookingPage() {
     })
   }
 
+  function isValidPhone(value: string): boolean {
+    const digits = value.replace(/\D/g, '')
+    return digits.length >= 10 && digits.length <= 15
+  }
+
+  function formatPhoneNumber(value: string): string {
+    const digits = value.replace(/\D/g, '')
+    if (digits.length <= 3) return digits
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
+  }
+
   function validate(): boolean {
     const nextErrors: Record<string, string> = {}
 
     if (!form.eventType.trim()) nextErrors.eventType = 'Required'
     if (!form.eventDate.trim()) nextErrors.eventDate = 'Required'
     if (!form.customerName.trim()) nextErrors.customerName = 'Required'
-    if (!form.customerContact.trim()) nextErrors.customerContact = 'Required'
+    if (!form.customerContact.trim()) {
+      nextErrors.customerContact = 'Required'
+    } else if (!isValidPhone(form.customerContact)) {
+      nextErrors.customerContact = 'Enter a valid phone number'
+    }
 
     setErrors(nextErrors)
     return Object.keys(nextErrors).length === 0
   }
 
+  const isProspect = form.status === 'prospect'
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate() || !id) return
+
+    // Save custom event type if it's new
+    if (showCustomEventType && form.eventType) {
+      saveCustomEventType(form.eventType)
+    }
 
     const events = loadEvents()
     const updated: EventRecord[] = events.map((event) =>
@@ -126,6 +170,35 @@ export default function EditBookingPage() {
           <form className={styles.form} onSubmit={handleSubmit}>
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
+                <h3 className={styles.sectionTitle}>Status</h3>
+              </div>
+              <div className={styles.fieldRow}>
+                <div className={styles.field}>
+                  <div className={styles.segmented}>
+                    {(['prospect', 'confirmed'] as BookingStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        className={`${styles.segment} ${
+                          form.status === s ? styles.segmentActive : ''
+                        }`}
+                        onClick={() => handleChange('status', s)}
+                      >
+                        {s === 'prospect' ? 'Prospect' : 'Confirmed Booking'}
+                      </button>
+                    ))}
+                  </div>
+                  <span className={styles.sectionHint}>
+                    {isProspect
+                      ? 'Interested but no deposit yet'
+                      : 'Deposit received, booking confirmed'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
                 <h3 className={styles.sectionTitle}>Overview</h3>
                 <span className={styles.sectionHint}>
                   High-level event and contact details
@@ -134,31 +207,46 @@ export default function EditBookingPage() {
 
               <div className={styles.fieldRow}>
                 <label className={styles.field}>
-                  <span className={styles.label}>Payment Summary</span>
-                  <input
-                    className={styles.input}
-                    placeholder="$475.00 received on 12/5"
-                    value={form.paymentSummary}
-                    onChange={(e) =>
-                      handleChange('paymentSummary', e.target.value)
-                    }
-                  />
-                </label>
-              </div>
-
-              <div className={styles.fieldRow}>
-                <label className={styles.field}>
                   <span className={styles.label}>
                     Event Type<span className={styles.required}>*</span>
                   </span>
-                  <input
+                  <select
                     className={`${styles.input} ${
                       errors.eventType ? styles.inputError : ''
                     }`}
-                    placeholder="Baby Shower"
-                    value={form.eventType}
-                    onChange={(e) => handleChange('eventType', e.target.value)}
-                  />
+                    value={showCustomEventType ? '__other__' : form.eventType}
+                    onChange={(e) => {
+                      if (e.target.value === '__other__') {
+                        setShowCustomEventType(true)
+                        handleChange('eventType', '')
+                      } else {
+                        setShowCustomEventType(false)
+                        setCustomEventTypeInput('')
+                        handleChange('eventType', e.target.value)
+                      }
+                    }}
+                  >
+                    <option value="">Select event type...</option>
+                    {DEFAULT_EVENT_TYPES.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                    {customEventTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                    <option value="__other__">+ Add new type...</option>
+                  </select>
+                  {showCustomEventType && (
+                    <input
+                      className={`${styles.input} ${styles.customTypeInput}`}
+                      placeholder="Enter custom event type"
+                      value={customEventTypeInput}
+                      onChange={(e) => {
+                        setCustomEventTypeInput(e.target.value)
+                        handleChange('eventType', e.target.value)
+                      }}
+                      autoFocus
+                    />
+                  )}
                   {errors.eventType && (
                     <span className={styles.errorText}>
                       {errors.eventType}
@@ -215,13 +303,14 @@ export default function EditBookingPage() {
                     <span className={styles.required}>*</span>
                   </span>
                   <input
+                    type="tel"
                     className={`${styles.input} ${
                       errors.customerContact ? styles.inputError : ''
                     }`}
-                    placeholder="902-715-2645"
+                    placeholder="(555) 123-4567"
                     value={form.customerContact}
                     onChange={(e) =>
-                      handleChange('customerContact', e.target.value)
+                      handleChange('customerContact', formatPhoneNumber(e.target.value))
                     }
                   />
                   {errors.customerContact && (

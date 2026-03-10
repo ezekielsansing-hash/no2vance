@@ -18,10 +18,22 @@
   display: flex;
   justify-content: space-between;
   gap: 1.5rem;
-  align-items: flex-start;
+  align-items: center;
   border-bottom: 1px solid #ddd;
   padding-bottom: 1.4rem;
   margin-bottom: 1.6rem;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: auto;
+  width: auto;
+  max-height: 160px;
+  object-fit: contain;
 }
 
 .title {
@@ -452,6 +464,18 @@
 .pillEffort {
   border-color: #1a1a1a;
   color: #1a1a1a;
+}
+
+.pillProspect {
+  border-color: #d97706;
+  color: #d97706;
+  background: #fffbeb;
+}
+
+.pillConfirmed {
+  border-color: #059669;
+  color: #059669;
+  background: #ecfdf5;
 }
 
 .pillMuted {

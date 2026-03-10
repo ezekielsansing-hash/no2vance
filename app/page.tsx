@@ -1,12 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import Link from 'next/link'
 import styles from './page.module.css'
 import { EventRecord, loadEvents, saveEvents } from './lib/events'
 
 type ViewMode = 'list' | 'calendar'
 type SortOrder = 'asc' | 'desc'
+
+function formatPhoneNumber(value: string): string {
+  const digits = value.replace(/\D/g, '')
+  if (digits.length <= 3) return digits
+  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
+}
 
 export default function Home() {
   const [events, setEvents] = useState<EventRecord[]>([])
@@ -78,14 +86,26 @@ export default function Home() {
     const sortedYears = Object.keys(byYear).sort((a, b) => b.localeCompare(a))
     const sortedMonths = Object.keys(byMonth).sort((a, b) => b.localeCompare(a))
 
+    const prospects = sortedEvents.filter((e) => e.status === 'prospect').length
+    const confirmed = sortedEvents.filter((e) => e.status !== 'prospect').length
+    const allProspects = events.filter((e) => e.status === 'prospect').length
+    const allConfirmed = events.filter((e) => e.status !== 'prospect').length
+    const converted = events.filter((e) => e.convertedAt).length
+    const conversionRate = allProspects + converted > 0
+      ? Math.round((converted / (allProspects + converted)) * 100)
+      : 0
+
     return {
       total: sortedEvents.length,
+      prospects,
+      confirmed,
+      conversionRate,
       byYear,
       byMonth,
       sortedYears,
       sortedMonths,
     }
-  }, [sortedEvents])
+  }, [sortedEvents, events])
 
   function handleDelete(id: string) {
     const event = events.find((e) => e.id === id)
@@ -102,6 +122,18 @@ export default function Home() {
       if (current !== id) return current
       const currentEvents = loadEvents()
       return currentEvents[0]?.id ?? null
+    })
+  }
+
+  function handleConvert(id: string) {
+    setEvents((prev) => {
+      const next = prev.map((e) =>
+        e.id === id
+          ? { ...e, status: 'confirmed' as const, convertedAt: new Date().toISOString() }
+          : e
+      )
+      saveEvents(next)
+      return next
     })
   }
 
@@ -196,11 +228,15 @@ export default function Home() {
     <main className={styles.page}>
       <section className={styles.shell}>
         <header className={styles.header}>
-          <div>
-            <h1 className={styles.title}>Venue Bookings</h1>
-            <p className={styles.subtitle}>
-              Quick overview of all saved events for your multi-use venue.
-            </p>
+          <div className={styles.headerLeft}>
+            <Image
+              src="/logo.png"
+              alt="No. 2 Vance Event Venue"
+              width={400}
+              height={180}
+              className={styles.logo}
+              priority
+            />
           </div>
           <div className={styles.headerActions}>
             <div className={styles.viewToggle}>
@@ -228,8 +264,16 @@ export default function Home() {
         {sortedEvents.length > 0 && (
           <section className={styles.statsSection}>
             <div className={styles.statCard}>
-              <span className={styles.statValue}>{eventStats.total}</span>
-              <span className={styles.statLabel}>Total Events</span>
+              <span className={styles.statValue}>{eventStats.confirmed}</span>
+              <span className={styles.statLabel}>Confirmed</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statValue}>{eventStats.prospects}</span>
+              <span className={styles.statLabel}>Prospects</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statValue}>{eventStats.conversionRate}%</span>
+              <span className={styles.statLabel}>Conversion</span>
             </div>
             <div className={styles.statGroup}>
               <span className={styles.statGroupLabel}>By Year</span>
@@ -299,7 +343,12 @@ export default function Home() {
                       <div className={styles.eventCardMain}>
                         <div className={styles.eventTitleRow}>
                           <span className={styles.eventType}>
-                            {event.eventType || 'Untitled Event'}
+                            {event.customerName || 'No customer yet'}
+                          </span>
+                          <span className={`${styles.pill} ${
+                            event.status === 'prospect' ? styles.pillProspect : styles.pillConfirmed
+                          }`}>
+                            {event.status === 'prospect' ? 'Prospect' : 'Confirmed'}
                           </span>
                           {event.effortLevel && (
                             <span className={`${styles.pill} ${styles.pillEffort}`}>
@@ -308,28 +357,22 @@ export default function Home() {
                           )}
                         </div>
                         <span className={styles.eventMetaPrimary}>
-                          {event.eventDate
-                            ? new Date(event.eventDate).toLocaleDateString()
-                            : 'Date TBD'}
+                          {event.eventType || 'Untitled Event'}
+                          {event.eventDate &&
+                            ` • ${new Date(event.eventDate).toLocaleDateString()}`}
                           {event.eventTimeStart &&
                             ` • ${event.eventTimeStart}${
                               event.eventTimeEnd ? `–${event.eventTimeEnd}` : ''
                             }`}
                         </span>
                         <span className={styles.eventMetaSecondary}>
-                          {event.customerName || 'No customer yet'}
-                          {event.ratePackage && ` • ${event.ratePackage}`}
+                          {event.ratePackage || ''}
                         </span>
                       </div>
                       <div className={styles.eventCardAside}>
                         {event.estimatedGuestCount && (
                           <span className={styles.pill}>
                             {event.estimatedGuestCount} guests
-                          </span>
-                        )}
-                        {event.paymentSummary && (
-                          <span className={styles.pillMuted}>
-                            {event.paymentSummary}
                           </span>
                         )}
                       </div>
@@ -399,13 +442,22 @@ export default function Home() {
                   <div className={styles.detailHeader}>
                     <div>
                       <h3 className={styles.detailTitle}>
-                        {activeEvent.eventType || 'Untitled Event'}
+                        {activeEvent.customerName || 'No customer yet'}
                       </h3>
                       <p className={styles.detailSubtitle}>
-                        {activeEvent.customerName || 'No customer yet'}
+                        {activeEvent.eventType || 'Untitled Event'}
                       </p>
                     </div>
                     <div className={styles.detailActions}>
+                      {activeEvent.status === 'prospect' && (
+                        <button
+                          type="button"
+                          className={`${styles.button} ${styles.primaryButton}`}
+                          onClick={() => handleConvert(activeEvent.id)}
+                        >
+                          Convert to Booking
+                        </button>
+                      )}
                       <Link
                         href={`/bookings/${activeEvent.id}`}
                         className={`${styles.button} ${styles.ghostButton}`}
@@ -423,6 +475,14 @@ export default function Home() {
                   </div>
 
                   <dl className={styles.detailGrid}>
+                    <div>
+                      <dt>Contact</dt>
+                      <dd>
+                        {activeEvent.customerContact
+                          ? formatPhoneNumber(activeEvent.customerContact)
+                          : '—'}
+                      </dd>
+                    </div>
                     <div>
                       <dt>Date of Event</dt>
                       <dd>
@@ -442,10 +502,6 @@ export default function Home() {
                             }`
                           : '—'}
                       </dd>
-                    </div>
-                    <div>
-                      <dt>Payment Summary</dt>
-                      <dd>{activeEvent.paymentSummary || '—'}</dd>
                     </div>
                     <div>
                       <dt>Date of Deposit</dt>
