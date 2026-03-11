@@ -308,10 +308,12 @@ export default function CustomersPage() {
                                 className={`${styles.pill} ${
                                   booking.status === 'prospect'
                                     ? styles.pillProspect
+                                    : booking.status === 'lost'
+                                    ? styles.pillLost
                                     : styles.pillConfirmed
                                 }`}
                               >
-                                {booking.status === 'prospect' ? 'Prospect' : 'Confirmed'}
+                                {booking.status === 'prospect' ? 'Prospect' : booking.status === 'lost' ? 'Lost' : 'Confirmed'}
                               </span>
                             </div>
                           </Link>

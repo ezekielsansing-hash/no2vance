@@ -67,6 +67,52 @@
   gap: 1.5rem;
 }
 
+.statusFilterGroup {
+  display: flex;
+  gap: 0;
+}
+
+.statusFilterBtn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #999;
+  cursor: pointer;
+  transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
+}
+
+.statusFilterBtn:not(:last-child) {
+  border-right: none;
+}
+
+.statusFilterBtn:hover:not(.statusFilterBtnActive) {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.statusFilterBtnActive {
+  border-color: #1a1a1a;
+}
+
+.statusFilterBtnProspect {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #d97706;
+}
+
+.statusFilterBtnConfirmed {
+  background: #ecfdf5;
+  color: #059669;
+  border-color: #059669;
+}
+
+.statusFilterBtnLost {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #dc2626;
+}
+
 .dateFilter {
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
@@ -162,6 +208,12 @@
   color: #666;
   text-transform: uppercase;
   letter-spacing: 0.08em;
+}
+
+.statSubvalue {
+  font-size: 0.78rem;
+  color: #dc2626;
+  margin-top: 0.1rem;
 }
 
 .statGroup {
@@ -386,6 +438,26 @@
   background: #fef2f2;
 }
 
+.confirmButton {
+  background: #fff;
+  border-color: #059669;
+  color: #059669;
+}
+
+.confirmButton:hover {
+  background: #ecfdf5;
+}
+
+.lostButton {
+  background: #fff;
+  border-color: #dc2626;
+  color: #dc2626;
+}
+
+.lostButton:hover {
+  background: #fef2f2;
+}
+
 .emptyState {
   font-size: 0.85rem;
   color: #666;
@@ -396,8 +468,69 @@
 
 .listLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.9fr);
-  gap: 0.9rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  gap: 1.5rem;
+}
+
+.listColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.listHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.listCount {
+  font-size: 0.75rem;
+  color: #888;
+}
+
+.listFilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 0.6rem;
+  background: #f9f9f9;
+  border: 1px solid #eee;
+}
+
+.dateFilters {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.listControls {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.detailColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.detailEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border: 1px dashed #ddd;
+  background: #fafafa;
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.detailEventHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  align-items: flex-start;
 }
 
 .eventList {
@@ -496,6 +629,12 @@
   background: #ecfdf5;
 }
 
+.pillLost {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
 .pillMuted {
   border-color: #ddd;
   color: #888;
@@ -580,6 +719,14 @@
 
   .listLayout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .listFilters {
+    flex-direction: column;
+  }
+
+  .detailColumn {
+    display: none;
   }
 }
 

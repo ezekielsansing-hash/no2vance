@@ -57,6 +57,7 @@ export default function Home() {
   const [hidePast, setHidePast] = useState(true)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'confirmed']))
 
   useEffect(() => {
     migrateExistingBookingsToCustomers()
@@ -91,16 +92,22 @@ export default function Home() {
 
   const sortedEvents = useMemo(() => {
     let filtered = events
+
+    // Status filter
+    filtered = filtered.filter((e) => statusFilter.has(e.status))
+
+    // Date filters
     if (dateFrom || dateTo) {
-      filtered = events.filter((e) => {
+      filtered = filtered.filter((e) => {
         if (!e.eventDate) return false
         const eventDate = e.eventDate.slice(0, 10)
         return (!dateFrom || eventDate >= dateFrom) &&
                (!dateTo || eventDate <= dateTo)
       })
     } else if (hidePast) {
-      filtered = events.filter((e) => !e.eventDate || e.eventDate >= todayStr)
+      filtered = filtered.filter((e) => !e.eventDate || e.eventDate >= todayStr)
     }
+
     return [...filtered].sort((a, b) => {
       const dateA = a.eventDate || ''
       const dateB = b.eventDate || ''
@@ -110,16 +117,17 @@ export default function Home() {
       const cmp = dateA.localeCompare(dateB)
       return sortOrder === 'asc' ? cmp : -cmp
     })
-  }, [events, sortOrder, hidePast, todayStr, dateFrom, dateTo])
+  }, [events, sortOrder, hidePast, todayStr, dateFrom, dateTo, statusFilter])
 
   const pastEventCount = useMemo(() => {
     return events.filter((e) => e.eventDate && e.eventDate < todayStr).length
   }, [events, todayStr])
 
 
+  // Clear activeId if the selected event is no longer in the filtered list
   useEffect(() => {
-    if (sortedEvents.length > 0 && !activeId) {
-      setActiveId(sortedEvents[0].id)
+    if (activeId && !sortedEvents.find((e) => e.id === activeId)) {
+      setActiveId(null)
     }
   }, [sortedEvents, activeId])
 
@@ -148,19 +156,32 @@ export default function Home() {
     const sortedMonths = Object.keys(byMonth).sort((a, b) => b.localeCompare(a))
 
     const prospects = sortedEvents.filter((e) => e.status === 'prospect').length
-    const confirmed = sortedEvents.filter((e) => e.status !== 'prospect').length
+    const confirmed = sortedEvents.filter((e) => e.status === 'confirmed').length
+    const lost = sortedEvents.filter((e) => e.status === 'lost').length
     const allProspects = events.filter((e) => e.status === 'prospect').length
-    const allConfirmed = events.filter((e) => e.status !== 'prospect').length
+    const allConfirmed = events.filter((e) => e.status === 'confirmed').length
+    const allLost = events.filter((e) => e.status === 'lost').length
     const converted = events.filter((e) => e.convertedAt).length
-    const conversionRate = allProspects + converted > 0
-      ? Math.round((converted / (allProspects + converted)) * 100)
+    // Conversion rate: confirmed / (confirmed + lost) - shows rate of resolved prospects
+    const resolved = allConfirmed + allLost
+    const conversionRate = resolved > 0
+      ? Math.round((allConfirmed / resolved) * 100)
       : 0
+
+    // Total lost revenue
+    const lostEvents = sortedEvents.filter((e) => e.status === 'lost')
+    const totalLostRevenue = lostEvents.reduce((sum, e) => {
+      const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+      return sum + amount
+    }, 0)
 
     return {
       total: sortedEvents.length,
       prospects,
       confirmed,
+      lost,
       conversionRate,
+      totalLostRevenue,
       byYear,
       byMonth,
       sortedYears,
@@ -204,6 +225,18 @@ export default function Home() {
       const next = prev.map((e) =>
         e.id === id
           ? { ...e, status: 'confirmed' as const, convertedAt: new Date().toISOString() }
+          : e
+      )
+      saveEvents(next)
+      return next
+    })
+  }
+
+  function handleMarkAsLost(id: string) {
+    setEvents((prev) => {
+      const next = prev.map((e) =>
+        e.id === id
+          ? { ...e, status: 'lost' as const }
           : e
       )
       saveEvents(next)
@@ -338,7 +371,7 @@ export default function Home() {
               </button>
             </div>
             <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
-              New Booking
+              New Prospect/Booking
             </Link>
           </div>
         </header>
@@ -352,6 +385,15 @@ export default function Home() {
             <div className={styles.statCard}>
               <span className={styles.statValue}>{eventStats.prospects}</span>
               <span className={styles.statLabel}>Prospects</span>
+            </div>
+            <div className={styles.statCard}>
+              <span className={styles.statValue}>{eventStats.lost}</span>
+              <span className={styles.statLabel}>Lost</span>
+              {eventStats.totalLostRevenue > 0 && (
+                <span className={styles.statSubvalue}>
+                  ${eventStats.totalLostRevenue.toLocaleString()}
+                </span>
+              )}
             </div>
             <div className={styles.statCard}>
               <span className={styles.statValue}>{eventStats.conversionRate}%</span>
@@ -381,62 +423,91 @@ export default function Home() {
         )}
 
         <section className={styles.listPanel}>
-          <div className={styles.panelHeader}>
-            <h2 className={styles.panelTitle}>Saved Bookings</h2>
-            {events.length > 0 && (
-              <div className={styles.panelControls}>
-                <input
-                  type="date"
-                  className={styles.dateFilter}
-                  value={dateFrom}
-                  onChange={(e) => handleDateFromChange(e.target.value)}
-                  title="From date"
-                />
-                <span className={styles.dateRangeSeparator}>to</span>
-                <input
-                  type="date"
-                  className={styles.dateFilter}
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  title="To date"
-                />
-                {(dateFrom || dateTo) && (
-                  <button
-                    type="button"
-                    className={styles.filterBtn}
-                    onClick={clearDateFilter}
-                  >
-                    Clear
-                  </button>
-                )}
-                {!dateFrom && !dateTo && pastEventCount > 0 && (
-                  <button
-                    type="button"
-                    className={`${styles.filterBtn} ${hidePast ? styles.filterBtnActive : ''}`}
-                    onClick={() => setHidePast((prev) => !prev)}
-                  >
-                    {hidePast ? `Show past (${pastEventCount})` : 'Hide past'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  className={styles.sortBtn}
-                  onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                >
-                  Date {sortOrder === 'asc' ? '↑' : '↓'}
-                </button>
-              </div>
-            )}
-          </div>
-
           {events.length === 0 ? (
             <p className={styles.emptyState}>
-              No bookings yet. Click &quot;New Booking&quot; to create your first event.
+              No bookings yet. Click &quot;New Prospect/Booking&quot; to create your first event.
             </p>
           ) : (
             <div className={styles.listLayout}>
-              {viewMode === 'list' ? (
-                <div className={styles.eventList}>
+              <div className={styles.listColumn}>
+                <div className={styles.listHeader}>
+                  <h2 className={styles.panelTitle}>Bookings</h2>
+                  <span className={styles.listCount}>{sortedEvents.length} shown</span>
+                </div>
+                <div className={styles.listFilters}>
+                  <div className={styles.statusFilterGroup}>
+                    {(['prospect', 'confirmed', 'lost'] as const).map((status) => (
+                      <button
+                        key={status}
+                        type="button"
+                        className={`${styles.statusFilterBtn} ${
+                          statusFilter.has(status) ? styles.statusFilterBtnActive : ''
+                        } ${statusFilter.has(status) && status === 'prospect' ? styles.statusFilterBtnProspect : ''
+                        } ${statusFilter.has(status) && status === 'confirmed' ? styles.statusFilterBtnConfirmed : ''
+                        } ${statusFilter.has(status) && status === 'lost' ? styles.statusFilterBtnLost : ''}`}
+                        onClick={() => {
+                          setStatusFilter((prev) => {
+                            const next = new Set(prev)
+                            if (next.has(status)) {
+                              next.delete(status)
+                            } else {
+                              next.add(status)
+                            }
+                            return next
+                          })
+                        }}
+                      >
+                        {status === 'prospect' ? 'Prospect' : status === 'confirmed' ? 'Confirmed' : 'Lost'}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.dateFilters}>
+                    <input
+                      type="date"
+                      className={styles.dateFilter}
+                      value={dateFrom}
+                      onChange={(e) => handleDateFromChange(e.target.value)}
+                      title="From date"
+                    />
+                    <span className={styles.dateRangeSeparator}>to</span>
+                    <input
+                      type="date"
+                      className={styles.dateFilter}
+                      value={dateTo}
+                      onChange={(e) => setDateTo(e.target.value)}
+                      title="To date"
+                    />
+                    {(dateFrom || dateTo) && (
+                      <button
+                        type="button"
+                        className={styles.filterBtn}
+                        onClick={clearDateFilter}
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.listControls}>
+                    {!dateFrom && !dateTo && pastEventCount > 0 && (
+                      <button
+                        type="button"
+                        className={`${styles.filterBtn} ${hidePast ? styles.filterBtnActive : ''}`}
+                        onClick={() => setHidePast((prev) => !prev)}
+                      >
+                        {hidePast ? `Show past (${pastEventCount})` : 'Hide past'}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className={styles.sortBtn}
+                      onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+                    >
+                      Date {sortOrder === 'asc' ? '↑' : '↓'}
+                    </button>
+                  </div>
+                </div>
+                {viewMode === 'list' ? (
+                  <div className={styles.eventList}>
                   {sortedEvents.map((event) => (
                     <button
                       key={event.id}
@@ -444,7 +515,7 @@ export default function Home() {
                       className={`${styles.eventCard} ${
                         activeId === event.id ? styles.eventCardActive : ''
                       }`}
-                      onClick={() => setActiveId(event.id)}
+                      onClick={() => setActiveId(activeId === event.id ? null : event.id)}
                     >
                       <div className={styles.eventCardMain}>
                         <div className={styles.eventTitleRow}>
@@ -452,9 +523,13 @@ export default function Home() {
                             {getCustomerName(event)}
                           </span>
                           <span className={`${styles.pill} ${
-                            event.status === 'prospect' ? styles.pillProspect : styles.pillConfirmed
+                            event.status === 'prospect'
+                              ? styles.pillProspect
+                              : event.status === 'lost'
+                              ? styles.pillLost
+                              : styles.pillConfirmed
                           }`}>
-                            {event.status === 'prospect' ? 'Prospect' : 'Confirmed'}
+                            {event.status === 'prospect' ? 'Prospect' : event.status === 'lost' ? 'Lost' : 'Confirmed'}
                           </span>
                           {event.effortLevel && (
                             <span className={`${styles.pill} ${styles.pillEffort}`}>
@@ -484,9 +559,9 @@ export default function Home() {
                       </div>
                     </button>
                   ))}
-                </div>
-              ) : (
-                <div className={styles.calendar}>
+                  </div>
+                ) : (
+                  <div className={styles.calendar}>
                   <div className={styles.calendarHeader}>
                     <button
                       type="button"
@@ -529,7 +604,7 @@ export default function Home() {
                                 className={`${styles.calendarEvent} ${
                                   activeId === event.id ? styles.calendarEventActive : ''
                                 }`}
-                                onClick={() => setActiveId(event.id)}
+                                onClick={() => setActiveId(activeId === event.id ? null : event.id)}
                                 title={event.eventType || 'Untitled Event'}
                               >
                                 {event.eventType || 'Untitled'}
@@ -540,29 +615,43 @@ export default function Home() {
                       )
                     })}
                   </div>
-                </div>
-              )}
+                  </div>
+                )}
+              </div>
 
-              {activeEvent && (
-                <aside className={styles.detailPanel}>
-                  <div className={styles.detailHeader}>
-                    <div>
-                      <h3 className={styles.detailTitle}>
-                        {getCustomerName(activeEvent)}
-                      </h3>
+              <div className={styles.detailColumn}>
+                <div className={styles.detailHeader}>
+                  <h2 className={styles.panelTitle}>Details</h2>
+                </div>
+                {activeEvent ? (
+                  <aside className={styles.detailPanel}>
+                    <div className={styles.detailEventHeader}>
+                      <div>
+                        <h3 className={styles.detailTitle}>
+                          {getCustomerName(activeEvent)}
+                        </h3>
                       <p className={styles.detailSubtitle}>
                         {activeEvent.eventType || 'Untitled Event'}
                       </p>
                     </div>
                     <div className={styles.detailActions}>
                       {activeEvent.status === 'prospect' && (
-                        <button
-                          type="button"
-                          className={`${styles.button} ${styles.primaryButton}`}
-                          onClick={() => handleConvert(activeEvent.id)}
-                        >
-                          Convert to Booking
-                        </button>
+                        <>
+                          <button
+                            type="button"
+                            className={`${styles.button} ${styles.confirmButton}`}
+                            onClick={() => handleConvert(activeEvent.id)}
+                          >
+                            Convert to Booking
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.button} ${styles.lostButton}`}
+                            onClick={() => handleMarkAsLost(activeEvent.id)}
+                          >
+                            Mark as Lost
+                          </button>
+                        </>
                       )}
                       <Link
                         href={`/bookings/${activeEvent.id}`}
@@ -701,8 +790,13 @@ export default function Home() {
                       <dd>{activeEvent.postEventNotes || '—'}</dd>
                     </div>
                   </dl>
-                </aside>
-              )}
+                  </aside>
+                ) : (
+                  <div className={styles.detailEmpty}>
+                    <p>Select a booking to view details</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </section>

@@ -198,6 +198,11 @@
   color: #dc2626;
 }
 
+.warningText {
+  font-size: 0.7rem;
+  color: #d97706;
+}
+
 .statusSection {
   display: flex;
   align-items: center;
@@ -244,6 +249,11 @@
   background: #fff;
   color: #1a1a1a;
   box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+}
+
+.segmentLost {
+  background: #fef2f2;
+  color: #dc2626;
 }
 
 .formFooter {

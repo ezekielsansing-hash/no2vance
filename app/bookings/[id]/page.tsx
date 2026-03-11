@@ -37,12 +37,19 @@ export default function EditBookingPage() {
   const [showNewCustomer, setShowNewCustomer] = useState(false)
   const [logisticsOpen, setLogisticsOpen] = useState(true)
   const [vendorsOpen, setVendorsOpen] = useState(true)
+  const [existingEvents, setExistingEvents] = useState<EventRecord[]>([])
 
   useEffect(() => {
     migrateExistingBookingsToCustomers()
     setCustomEventTypes(loadCustomEventTypes())
     setCustomers(loadCustomers())
+    setExistingEvents(loadEvents())
   }, [])
+
+  // Check for existing events on the selected date (excluding current event)
+  const eventsOnDate = form.eventDate
+    ? existingEvents.filter((e) => e.eventDate === form.eventDate && e.id !== id)
+    : []
 
   function handleCustomerSelect(customerId: string) {
     if (customerId === '__new__') {
@@ -241,16 +248,16 @@ export default function EditBookingPage() {
             <div className={styles.statusSection}>
               <span className={styles.statusLabel}>Status</span>
               <div className={styles.segmented}>
-                {(['prospect', 'confirmed'] as BookingStatus[]).map((s) => (
+                {(['prospect', 'confirmed', 'lost'] as BookingStatus[]).map((s) => (
                   <button
                     key={s}
                     type="button"
                     className={`${styles.segment} ${
                       form.status === s ? styles.segmentActive : ''
-                    }`}
+                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''}`}
                     onClick={() => handleChange('status', s)}
                   >
-                    {s === 'prospect' ? 'Prospect' : 'Confirmed'}
+                    {s === 'prospect' ? 'Prospect' : s === 'confirmed' ? 'Confirmed' : 'Lost'}
                   </button>
                 ))}
               </div>
@@ -329,6 +336,11 @@ export default function EditBookingPage() {
                   {errors.eventDate && (
                     <span className={styles.errorText}>
                       {errors.eventDate}
+                    </span>
+                  )}
+                  {eventsOnDate.length > 0 && (
+                    <span className={styles.warningText}>
+                      {eventsOnDate.length} event{eventsOnDate.length > 1 ? 's' : ''} already scheduled on this date
                     </span>
                   )}
                 </label>

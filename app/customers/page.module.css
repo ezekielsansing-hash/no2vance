@@ -361,6 +361,12 @@
   background: #ecfdf5;
 }
 
+.pillLost {
+  border-color: #dc2626;
+  color: #dc2626;
+  background: #fef2f2;
+}
+
 /* Summary stats */
 .customerStats {
   display: flex;

@@ -32,6 +32,7 @@ export default function NewBookingPage() {
   const [showNewCustomer, setShowNewCustomer] = useState(false)
   const [logisticsOpen, setLogisticsOpen] = useState(false)
   const [vendorsOpen, setVendorsOpen] = useState(false)
+  const [existingEvents, setExistingEvents] = useState<EventRecord[]>([])
   const router = useRouter()
 
   // Update collapsed state when status changes
@@ -41,10 +42,16 @@ export default function NewBookingPage() {
     setVendorsOpen(!isProspect)
   }, [isProspect])
 
+  // Check for existing events on the selected date
+  const eventsOnDate = form.eventDate
+    ? existingEvents.filter((e) => e.eventDate === form.eventDate)
+    : []
+
   useEffect(() => {
     migrateExistingBookingsToCustomers()
     setCustomEventTypes(loadCustomEventTypes())
     setCustomers(loadCustomers())
+    setExistingEvents(loadEvents())
   }, [])
 
   function handleCustomerSelect(customerId: string) {
@@ -193,16 +200,16 @@ export default function NewBookingPage() {
             <div className={styles.statusSection}>
               <span className={styles.statusLabel}>Status</span>
               <div className={styles.segmented}>
-                {(['prospect', 'confirmed'] as BookingStatus[]).map((s) => (
+                {(['prospect', 'confirmed', 'lost'] as BookingStatus[]).map((s) => (
                   <button
                     key={s}
                     type="button"
                     className={`${styles.segment} ${
                       form.status === s ? styles.segmentActive : ''
-                    }`}
+                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''}`}
                     onClick={() => handleChange('status', s)}
                   >
-                    {s === 'prospect' ? 'Prospect' : 'Confirmed'}
+                    {s === 'prospect' ? 'Prospect' : s === 'confirmed' ? 'Confirmed' : 'Lost'}
                   </button>
                 ))}
               </div>
@@ -281,6 +288,11 @@ export default function NewBookingPage() {
                   {errors.eventDate && (
                     <span className={styles.errorText}>
                       {errors.eventDate}
+                    </span>
+                  )}
+                  {eventsOnDate.length > 0 && (
+                    <span className={styles.warningText}>
+                      {eventsOnDate.length} event{eventsOnDate.length > 1 ? 's' : ''} already scheduled on this date
                     </span>
                   )}
                 </label>
@@ -630,7 +642,7 @@ export default function NewBookingPage() {
                   type="submit"
                   className={`${styles.button} ${styles.primaryButton}`}
                 >
-                  Save Booking
+                  Save
                 </button>
                 <button
                   type="button"

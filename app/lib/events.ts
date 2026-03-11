@@ -1,5 +1,5 @@
 export type EffortLevel = 'S' | 'M' | 'L'
-export type BookingStatus = 'prospect' | 'confirmed'
+export type BookingStatus = 'prospect' | 'confirmed' | 'lost'
 
 export type Customer = {
   id: string
