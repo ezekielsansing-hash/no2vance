@@ -365,45 +365,49 @@ export default function Home() {
 
         {sortedEvents.length > 0 && (
           <section className={styles.statsSection}>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{eventStats.confirmed}</span>
-              <span className={styles.statLabel}>Confirmed</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{eventStats.prospects}</span>
-              <span className={styles.statLabel}>Prospects</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{eventStats.lost}</span>
-              <span className={styles.statLabel}>Lost</span>
-              {eventStats.totalLostRevenue > 0 && (
-                <span className={styles.statSubvalue}>
-                  ${eventStats.totalLostRevenue.toLocaleString()}
-                </span>
-              )}
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{eventStats.conversionRate}%</span>
-              <span className={styles.statLabel}>Conversion</span>
-            </div>
-            <div className={styles.statGroup}>
-              <span className={styles.statGroupLabel}>By Year</span>
-              <div className={styles.statTags}>
-                {eventStats.sortedYears.map((year) => (
-                  <span key={year} className={styles.statTag}>
-                    {year}: {eventStats.byYear[year]}
+            <div className={styles.statsLeft}>
+              <div className={styles.statCard}>
+                <span className={styles.statValue}>{eventStats.confirmed}</span>
+                <span className={styles.statLabel}>Confirmed</span>
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statValue}>{eventStats.prospects}</span>
+                <span className={styles.statLabel}>Prospects</span>
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statValue}>{eventStats.lost}</span>
+                <span className={styles.statLabel}>Lost</span>
+                {eventStats.totalLostRevenue > 0 && (
+                  <span className={styles.statSubvalue}>
+                    ${eventStats.totalLostRevenue.toLocaleString()}
                   </span>
-                ))}
+                )}
+              </div>
+              <div className={styles.statCard}>
+                <span className={styles.statValue}>{eventStats.conversionRate}%</span>
+                <span className={styles.statLabel}>Conversion</span>
               </div>
             </div>
-            <div className={styles.statGroup}>
-              <span className={styles.statGroupLabel}>By Month</span>
-              <div className={styles.statTags}>
-                {eventStats.sortedMonths.slice(0, 6).map((key) => (
-                  <span key={key} className={styles.statTag}>
-                    {formatMonthKey(key)}: {eventStats.byMonth[key]}
-                  </span>
-                ))}
+            <div className={styles.statsRight}>
+              <div className={styles.statGroup}>
+                <span className={styles.statGroupLabel}>By Year</span>
+                <div className={styles.statTags}>
+                  {eventStats.sortedYears.map((year) => (
+                    <span key={year} className={styles.statTag}>
+                      {year}: {eventStats.byYear[year]}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.statGroup}>
+                <span className={styles.statGroupLabel}>By Month</span>
+                <div className={styles.statTags}>
+                  {eventStats.sortedMonths.slice(0, 6).map((key) => (
+                    <span key={key} className={styles.statTag}>
+                      {formatMonthKey(key)}: {eventStats.byMonth[key]}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
           </section>

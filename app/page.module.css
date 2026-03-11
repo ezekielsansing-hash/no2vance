@@ -183,11 +183,23 @@
 /* Stats Section */
 .statsSection {
   display: flex;
+  justify-content: space-between;
   gap: 1.5rem;
-  align-items: flex-start;
   padding: 0.75rem 0;
   margin-bottom: 0.5rem;
   border-bottom: 1px solid #eee;
+}
+
+.statsLeft {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.statsRight {
+  display: flex;
+  gap: 1.5rem;
+  align-items: flex-start;
 }
 
 .statCard {
@@ -962,7 +974,12 @@
 
   .statsSection {
     flex-direction: column;
-    gap: 0.75rem;
+  }
+
+  .statsLeft,
+  .statsRight {
+    flex-wrap: wrap;
+    gap: 1rem;
   }
 
   .calendarDay {
