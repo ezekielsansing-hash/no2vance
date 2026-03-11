@@ -120,8 +120,12 @@ export default function Home() {
   }, [events, sortOrder, hidePast, todayStr, dateFrom, dateTo, statusFilter])
 
   const pastEventCount = useMemo(() => {
-    return events.filter((e) => e.eventDate && e.eventDate < todayStr).length
-  }, [events, todayStr])
+    return events.filter((e) =>
+      e.eventDate &&
+      e.eventDate < todayStr &&
+      statusFilter.has(e.status)
+    ).length
+  }, [events, todayStr, statusFilter])
 
 
   // Clear activeId if the selected event is no longer in the filtered list
@@ -357,9 +361,6 @@ export default function Home() {
                 Import
               </Link>
             </div>
-            <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
-              New Prospect/Booking
-            </Link>
           </div>
         </header>
 
@@ -414,6 +415,18 @@ export default function Home() {
         )}
 
         <section className={styles.listPanel}>
+          <div className={styles.panelHeader}>
+            <div className={styles.panelHeaderLeft}>
+              <h2 className={styles.panelTitle}>Bookings</h2>
+              {events.length > 0 && (
+                <span className={styles.listCount}>{sortedEvents.length} shown</span>
+              )}
+            </div>
+            <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
+              New Prospect/Booking
+            </Link>
+          </div>
+
           {events.length === 0 ? (
             <p className={styles.emptyState}>
               No bookings yet. Click &quot;New Prospect/Booking&quot; to create your first event.
@@ -421,29 +434,23 @@ export default function Home() {
           ) : (
             <div className={styles.listLayout}>
               <div className={styles.listColumn}>
-                <div className={styles.listHeader}>
-                  <div className={styles.listHeaderLeft}>
-                    <h2 className={styles.panelTitle}>Bookings</h2>
-                    <div className={styles.viewToggle}>
-                      <button
-                        type="button"
-                        className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
-                        onClick={() => setViewMode('list')}
-                      >
-                        List
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
-                        onClick={() => setViewMode('calendar')}
-                      >
-                        Calendar
-                      </button>
-                    </div>
-                  </div>
-                  <span className={styles.listCount}>{sortedEvents.length} shown</span>
-                </div>
                 <div className={styles.listFilters}>
+                  <div className={styles.viewToggle}>
+                    <button
+                      type="button"
+                      className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
+                      onClick={() => setViewMode('list')}
+                    >
+                      List
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
+                      onClick={() => setViewMode('calendar')}
+                    >
+                      Calendar
+                    </button>
+                  </div>
                   <div className={styles.statusFilterGroup}>
                     {(['prospect', 'confirmed', 'lost'] as const).map((status) => (
                       <button
@@ -629,9 +636,6 @@ export default function Home() {
               </div>
 
               <div className={styles.detailColumn}>
-                <div className={styles.detailHeader}>
-                  <h2 className={styles.panelTitle}>Details</h2>
-                </div>
                 {activeEvent ? (
                   <aside className={styles.detailPanel}>
                     <div className={styles.detailEventHeader}>

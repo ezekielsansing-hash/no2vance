@@ -152,6 +152,12 @@
   margin-bottom: 0.8rem;
 }
 
+.panelHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
 .panelTitle {
   font-size: 0.9rem;
   font-weight: 600;

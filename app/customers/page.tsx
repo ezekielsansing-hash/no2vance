@@ -148,9 +148,6 @@ export default function CustomersPage() {
                 Import
               </Link>
             </div>
-            <Link href="/customers/new" className={`${styles.button} ${styles.primaryButton}`}>
-              New Customer
-            </Link>
           </div>
         </header>
 
@@ -173,9 +170,9 @@ export default function CustomersPage() {
 
         <section className={styles.listPanel}>
           <div className={styles.panelHeader}>
-            <h2 className={styles.panelTitle}>Customers</h2>
-            {customers.length > 0 && (
-              <div className={styles.panelControls}>
+            <div className={styles.panelHeaderLeft}>
+              <h2 className={styles.panelTitle}>Customers</h2>
+              {customers.length > 0 && (
                 <input
                   type="text"
                   className={styles.searchInput}
@@ -183,8 +180,11 @@ export default function CustomersPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-              </div>
-            )}
+              )}
+            </div>
+            <Link href="/customers/new" className={`${styles.button} ${styles.primaryButton}`}>
+              New Customer
+            </Link>
           </div>
 
           {customers.length === 0 ? (

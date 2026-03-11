@@ -129,6 +129,66 @@ function validateCustomerRow(row: ParsedRow): string[] {
   return errors
 }
 
+function escapeCSVField(value: string): string {
+  if (!value) return ''
+  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
+    return `"${value.replace(/"/g, '""')}"`
+  }
+  return value
+}
+
+function generateBookingsCSV(events: EventRecord[]): string {
+  const headers = [
+    'customerName',
+    'customerContact',
+    'eventDate',
+    'status',
+    'eventType',
+    'eventTimeStart',
+    'eventTimeEnd',
+    'ratePackage',
+    'depositAmount',
+    'dateOfDeposit',
+    'estimatedGuestCount',
+    'leadSource',
+    'heardFrom',
+    'airbnb',
+    'setupLayout',
+    'vendorList',
+    'contractLink',
+    'photoFolder',
+    'postEventNotes',
+  ]
+
+  const rows = events.map((event) =>
+    headers.map((header) => escapeCSVField(event[header as keyof EventRecord]?.toString() || '')).join(',')
+  )
+
+  return [headers.join(','), ...rows].join('\n')
+}
+
+function generateCustomersCSV(customers: Customer[]): string {
+  const headers = ['name', 'contact', 'email', 'notes']
+
+  const rows = customers.map((customer) =>
+    headers.map((header) => escapeCSVField(customer[header as keyof Customer]?.toString() || '')).join(',')
+  )
+
+  return [headers.join(','), ...rows].join('\n')
+}
+
+function downloadCSV(content: string, filename: string): void {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(url)
+}
+
 export default function ImportPage() {
   const [importType, setImportType] = useState<ImportType>('bookings')
   const [parseResult, setParseResult] = useState<ParseResult | null>(null)
@@ -307,6 +367,28 @@ export default function ImportPage() {
   const resetImport = () => {
     setParseResult(null)
     setImportStatus(null)
+  }
+
+  const handleExportBookings = () => {
+    const events = loadEvents()
+    if (events.length === 0) {
+      alert('No bookings to export')
+      return
+    }
+    const csv = generateBookingsCSV(events)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadCSV(csv, `bookings-backup-${date}.csv`)
+  }
+
+  const handleExportCustomers = () => {
+    const customers = loadCustomers()
+    if (customers.length === 0) {
+      alert('No customers to export')
+      return
+    }
+    const csv = generateCustomersCSV(customers)
+    const date = new Date().toISOString().slice(0, 10)
+    downloadCSV(csv, `customers-backup-${date}.csv`)
   }
 
   return (
@@ -540,6 +622,29 @@ export default function ImportPage() {
               </div>
             </div>
           )}
+        </section>
+
+        <section className={styles.exportSection}>
+          <h2 className={styles.pageTitle}>Export Data</h2>
+          <p className={styles.exportDescription}>
+            Download your data as CSV files for backup. These files can be re-imported using the import tool above.
+          </p>
+          <div className={styles.exportButtons}>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.exportButton}`}
+              onClick={handleExportBookings}
+            >
+              Export Bookings CSV
+            </button>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.exportButton}`}
+              onClick={handleExportCustomers}
+            >
+              Export Customers CSV
+            </button>
+          </div>
         </section>
       </section>
     </main>
