@@ -408,6 +408,62 @@ export default function ImportPage() {
             </div>
           )}
 
+          {!parseResult && (
+            <div className={styles.columnsRef}>
+              <h3 className={styles.columnsRefTitle}>Column Reference</h3>
+              {importType === 'bookings' ? (
+                <div className={styles.columnGroups}>
+                  <div className={styles.columnGroup}>
+                    <h4 className={styles.columnGroupTitle}>Required</h4>
+                    <ul className={styles.columnList}>
+                      <li><code>customerName</code> — Customer full name</li>
+                      <li><code>customerContact</code> — Phone number</li>
+                      <li><code>eventDate</code> — Date in YYYY-MM-DD format</li>
+                    </ul>
+                  </div>
+                  <div className={styles.columnGroup}>
+                    <h4 className={styles.columnGroupTitle}>Optional</h4>
+                    <ul className={styles.columnList}>
+                      <li><code>status</code> — prospect, confirmed, or lost (defaults to prospect)</li>
+                      <li><code>eventType</code> — e.g. Wedding, Birthday, Corporate Event</li>
+                      <li><code>eventTimeStart</code> — Start time (HH:MM)</li>
+                      <li><code>eventTimeEnd</code> — End time (HH:MM)</li>
+                      <li><code>ratePackage</code> — Price/package amount</li>
+                      <li><code>depositAmount</code> — Deposit amount</li>
+                      <li><code>dateOfDeposit</code> — Deposit date (YYYY-MM-DD)</li>
+                      <li><code>estimatedGuestCount</code> — Number of guests</li>
+                      <li><code>leadSource</code> — Where the lead came from</li>
+                      <li><code>heardFrom</code> — How they heard about you</li>
+                      <li><code>airbnb</code> — Airbnb details</li>
+                      <li><code>setupLayout</code> — Setup and layout notes</li>
+                      <li><code>vendorList</code> — List of vendors</li>
+                      <li><code>contractLink</code> — URL to contract</li>
+                      <li><code>photoFolder</code> — URL to photo folder</li>
+                      <li><code>postEventNotes</code> — Notes after the event</li>
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.columnGroups}>
+                  <div className={styles.columnGroup}>
+                    <h4 className={styles.columnGroupTitle}>Required</h4>
+                    <ul className={styles.columnList}>
+                      <li><code>name</code> — Customer full name</li>
+                      <li><code>contact</code> — Phone number</li>
+                    </ul>
+                  </div>
+                  <div className={styles.columnGroup}>
+                    <h4 className={styles.columnGroupTitle}>Optional</h4>
+                    <ul className={styles.columnList}>
+                      <li><code>email</code> — Email address</li>
+                      <li><code>notes</code> — Additional notes</li>
+                    </ul>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {parseResult && (
             <div className={styles.preview}>
               <div className={styles.previewHeader}>
