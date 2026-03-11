@@ -59,9 +59,10 @@ export default function CustomersPage() {
     )
   }, [customers, search])
 
+  // Clear activeId if the selected customer is no longer in the filtered list
   useEffect(() => {
-    if (filteredCustomers.length > 0 && !activeId) {
-      setActiveId(filteredCustomers[0].id)
+    if (activeId && !filteredCustomers.find((c) => c.id === activeId)) {
+      setActiveId(null)
     }
   }, [filteredCustomers, activeId])
 
@@ -199,7 +200,7 @@ export default function CustomersPage() {
                       className={`${styles.customerCard} ${
                         activeId === customer.id ? styles.customerCardActive : ''
                       }`}
-                      onClick={() => setActiveId(customer.id)}
+                      onClick={() => setActiveId(activeId === customer.id ? null : customer.id)}
                     >
                       <span className={styles.customerName}>{customer.name}</span>
                       <span className={styles.customerContact}>
@@ -213,7 +214,7 @@ export default function CustomersPage() {
                 })}
               </div>
 
-              {activeCustomer && (
+              {activeCustomer ? (
                 <aside className={styles.detailPanel}>
                   <div className={styles.detailHeader}>
                     <div>
@@ -322,6 +323,10 @@ export default function CustomersPage() {
                     </div>
                   )}
                 </aside>
+              ) : (
+                <div className={styles.detailEmpty}>
+                  <p>Select a customer to view details</p>
+                </div>
               )}
             </div>
           )}

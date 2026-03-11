@@ -367,6 +367,17 @@
   background: #fef2f2;
 }
 
+.detailEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  border: 1px dashed #ddd;
+  background: #fafafa;
+  color: #888;
+  font-size: 0.85rem;
+}
+
 /* Summary stats */
 .customerStats {
   display: flex;

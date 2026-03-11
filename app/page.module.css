@@ -484,6 +484,12 @@
   align-items: center;
 }
 
+.listHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
 .listCount {
   font-size: 0.75rem;
   color: #888;

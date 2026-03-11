@@ -354,22 +354,6 @@ export default function Home() {
                 Customers
               </Link>
             </div>
-            <div className={styles.viewToggle}>
-              <button
-                type="button"
-                className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
-                onClick={() => setViewMode('list')}
-              >
-                List
-              </button>
-              <button
-                type="button"
-                className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
-                onClick={() => setViewMode('calendar')}
-              >
-                Calendar
-              </button>
-            </div>
             <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
               New Prospect/Booking
             </Link>
@@ -431,7 +415,25 @@ export default function Home() {
             <div className={styles.listLayout}>
               <div className={styles.listColumn}>
                 <div className={styles.listHeader}>
-                  <h2 className={styles.panelTitle}>Bookings</h2>
+                  <div className={styles.listHeaderLeft}>
+                    <h2 className={styles.panelTitle}>Bookings</h2>
+                    <div className={styles.viewToggle}>
+                      <button
+                        type="button"
+                        className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => setViewMode('list')}
+                      >
+                        List
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => setViewMode('calendar')}
+                      >
+                        Calendar
+                      </button>
+                    </div>
+                  </div>
                   <span className={styles.listCount}>{sortedEvents.length} shown</span>
                 </div>
                 <div className={styles.listFilters}>
