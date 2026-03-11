@@ -144,6 +144,9 @@ export default function CustomersPage() {
               <Link href="/customers" className={`${styles.navLink} ${styles.navLinkActive}`}>
                 Customers
               </Link>
+              <Link href="/import" className={styles.navLink}>
+                Import
+              </Link>
             </div>
             <Link href="/customers/new" className={`${styles.button} ${styles.primaryButton}`}>
               New Customer

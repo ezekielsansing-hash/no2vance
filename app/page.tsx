@@ -353,6 +353,9 @@ export default function Home() {
               <Link href="/customers" className={styles.navLink}>
                 Customers
               </Link>
+              <Link href="/import" className={styles.navLink}>
+                Import
+              </Link>
             </div>
             <Link href="/new" className={`${styles.button} ${styles.primaryButton}`}>
               New Prospect/Booking
