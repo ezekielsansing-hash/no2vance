@@ -136,6 +136,9 @@ export default function CustomersPage() {
               <Link href="/analytics" className={styles.navLink}>
                 Analytics
               </Link>
+              <Link href="/vendors" className={styles.navLink}>
+                Vendors
+              </Link>
               <Link href="/import" className={styles.navLink}>
                 Import
               </Link>
