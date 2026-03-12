@@ -290,8 +290,13 @@ export default function ImportPage() {
       // Bookings import
       const existingEvents = loadEvents()
       const existingCustomers = loadCustomers()
-      const customersByPhone = new Map(
-        existingCustomers.map((c) => [normalizePhone(c.contact), c])
+
+      // Match customers by name+phone combination (not just phone)
+      const customerKey = (name: string, phone: string) =>
+        `${name.toLowerCase().trim()}|${normalizePhone(phone)}`
+
+      const customersByNamePhone = new Map(
+        existingCustomers.map((c) => [customerKey(c.name, c.contact), c])
       )
 
       const newCustomers: Customer[] = []
@@ -300,10 +305,10 @@ export default function ImportPage() {
       validRows.forEach((row) => {
         const customerName = row.data.customerName.trim()
         const customerContact = row.data.customerContact.trim()
-        const phone = normalizePhone(customerContact)
+        const key = customerKey(customerName, customerContact)
 
-        // Find or create customer
-        let customer = customersByPhone.get(phone)
+        // Find or create customer - only match if BOTH name and phone match
+        let customer = customersByNamePhone.get(key)
         if (!customer) {
           customer = {
             id: `cust-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -311,7 +316,7 @@ export default function ImportPage() {
             contact: customerContact,
             createdAt: new Date().toISOString(),
           }
-          customersByPhone.set(phone, customer)
+          customersByNamePhone.set(key, customer)
           newCustomers.push(customer)
         }
 
@@ -437,6 +442,9 @@ export default function ImportPage() {
               </Link>
               <Link href="/customers" className={styles.navLink}>
                 Customers
+              </Link>
+              <Link href="/analytics" className={styles.navLink}>
+                Analytics
               </Link>
               <Link
                 href="/import"

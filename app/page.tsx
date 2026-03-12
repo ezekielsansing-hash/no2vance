@@ -140,84 +140,6 @@ export default function Home() {
     [events, activeId],
   )
 
-  const eventStats = useMemo(() => {
-    const byYear: Record<string, number> = {}
-    const byMonth: Record<string, number> = {}
-
-    sortedEvents.forEach((event) => {
-      if (event.eventDate) {
-        // Parse as local time to avoid timezone shifts
-        const [year, month] = event.eventDate.split('-').map(Number)
-        const yearStr = year.toString()
-        const monthKey = `${yearStr}-${String(month).padStart(2, '0')}`
-
-        byYear[yearStr] = (byYear[yearStr] || 0) + 1
-        byMonth[monthKey] = (byMonth[monthKey] || 0) + 1
-      }
-    })
-
-    const sortedYears = Object.keys(byYear).sort((a, b) => b.localeCompare(a))
-    const sortedMonths = Object.keys(byMonth).sort((a, b) => a.localeCompare(b))
-
-    const prospects = sortedEvents.filter((e) => e.status === 'prospect').length
-    const confirmed = sortedEvents.filter((e) => e.status === 'confirmed').length
-    const lost = sortedEvents.filter((e) => e.status === 'lost').length
-    const allProspects = events.filter((e) => e.status === 'prospect').length
-    const allConfirmed = events.filter((e) => e.status === 'confirmed').length
-    const allLost = events.filter((e) => e.status === 'lost').length
-    const converted = events.filter((e) => e.convertedAt).length
-    // Conversion rate: confirmed / (confirmed + lost) - shows rate of resolved prospects
-    const resolved = allConfirmed + allLost
-    const conversionRate = resolved > 0
-      ? Math.round((allConfirmed / resolved) * 100)
-      : 0
-
-    // Total lost revenue
-    const lostEvents = sortedEvents.filter((e) => e.status === 'lost')
-    const totalLostRevenue = lostEvents.reduce((sum, e) => {
-      const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
-      return sum + amount
-    }, 0)
-
-    // Confirmed bookings split by past/future
-    const pastConfirmed = events.filter(
-      (e) => e.status === 'confirmed' && e.eventDate && e.eventDate < todayStr
-    )
-    const futureConfirmed = events.filter(
-      (e) => e.status === 'confirmed' && e.eventDate && e.eventDate >= todayStr
-    )
-
-    // Revenue collected: full rate from past confirmed + deposits from future confirmed
-    const revenueCollected = pastConfirmed.reduce((sum, e) => {
-      const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
-      return sum + amount
-    }, 0) + futureConfirmed.reduce((sum, e) => {
-      const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
-      return sum + deposit
-    }, 0)
-
-    // Amount due (confirmed bookings in the future - rate minus deposit)
-    const amountDue = futureConfirmed.reduce((sum, e) => {
-      const rate = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
-      const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
-      return sum + (rate - deposit)
-    }, 0)
-
-    return {
-      total: sortedEvents.length,
-      prospects,
-      confirmed,
-      lost,
-      conversionRate,
-      totalLostRevenue,
-      revenueCollected,
-      amountDue,
-      byYear,
-      byMonth,
-      sortedYears,
-      sortedMonths,
-    }
-  }, [sortedEvents, events, todayStr])
 
   function handleDelete(id: string) {
     const event = events.find((e) => e.id === id)
@@ -355,12 +277,6 @@ export default function Home() {
     year: 'numeric',
   })
 
-  function formatMonthKey(key: string): string {
-    const [year, month] = key.split('-')
-    const date = new Date(parseInt(year), parseInt(month) - 1)
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-  }
-
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -383,6 +299,9 @@ export default function Home() {
               <Link href="/customers" className={styles.navLink}>
                 Customers
               </Link>
+              <Link href="/analytics" className={styles.navLink}>
+                Analytics
+              </Link>
               <Link href="/import" className={styles.navLink}>
                 Import
               </Link>
@@ -390,84 +309,6 @@ export default function Home() {
           </div>
         </header>
 
-        {sortedEvents.length > 0 && (
-          <section className={styles.statsSection}>
-            <div className={styles.statsRow}>
-              <div className={styles.statsLeft}>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{eventStats.confirmed}</span>
-                  <span className={styles.statLabel}>Confirmed</span>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{eventStats.prospects}</span>
-                  <span className={styles.statLabel}>Prospects</span>
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{eventStats.lost}</span>
-                  <span className={styles.statLabel}>Lost</span>
-                  {eventStats.totalLostRevenue > 0 && (
-                    <span className={styles.statSubvalue}>
-                      ${eventStats.totalLostRevenue.toLocaleString()}
-                    </span>
-                  )}
-                </div>
-                <div className={styles.statCard}>
-                  <span className={styles.statValue}>{eventStats.conversionRate}%</span>
-                  <span className={styles.statLabel}>Conversion</span>
-                </div>
-              </div>
-              <div className={styles.statsRight}>
-              <div className={styles.statGroup}>
-                <span className={styles.statGroupLabel}>By Year</span>
-                <div className={styles.statTags}>
-                  {eventStats.sortedYears.map((year) => (
-                    <span key={year} className={styles.statTag}>
-                      {year}: {eventStats.byYear[year]}
-                    </span>
-                  ))}
-                </div>
-              </div>
-              <div className={styles.statGroup}>
-                <span className={styles.statGroupLabel}>By Month</span>
-                <div className={styles.statTags}>
-                  {eventStats.sortedMonths.slice(0, 6).map((key) => (
-                    <span key={key} className={styles.statTag}>
-                      {formatMonthKey(key)}: {eventStats.byMonth[key]}
-                    </span>
-                  ))}
-                  {eventStats.sortedMonths.length > 6 && (
-                    <span className={styles.statTagMore}>
-                      +{eventStats.sortedMonths.slice(6).reduce(
-                        (sum, key) => sum + eventStats.byMonth[key], 0
-                      )} more
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-            {(eventStats.revenueCollected > 0 || eventStats.amountDue > 0) && (
-              <div className={styles.statsRowDollars}>
-                {eventStats.revenueCollected > 0 && (
-                  <div className={styles.statCard}>
-                    <span className={styles.statValue}>
-                      ${eventStats.revenueCollected.toLocaleString()}
-                    </span>
-                    <span className={styles.statLabel}>Collected</span>
-                  </div>
-                )}
-                {eventStats.amountDue > 0 && (
-                  <div className={styles.statCard}>
-                    <span className={styles.statValue}>
-                      ${eventStats.amountDue.toLocaleString()}
-                    </span>
-                    <span className={styles.statLabel}>Due</span>
-                  </div>
-                )}
-              </div>
-            )}
-          </section>
-        )}
 
         <section className={styles.listPanel}>
           <div className={styles.panelHeader}>
