@@ -261,6 +261,12 @@
   border: 1px solid #ddd;
 }
 
+.statTagMore {
+  font-size: 0.72rem;
+  color: #888;
+  padding: 0.15rem 0.4rem;
+}
+
 .form {
   display: flex;
   flex-direction: column;

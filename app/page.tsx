@@ -157,7 +157,7 @@ export default function Home() {
     })
 
     const sortedYears = Object.keys(byYear).sort((a, b) => b.localeCompare(a))
-    const sortedMonths = Object.keys(byMonth).sort((a, b) => b.localeCompare(a))
+    const sortedMonths = Object.keys(byMonth).sort((a, b) => a.localeCompare(b))
 
     const prospects = sortedEvents.filter((e) => e.status === 'prospect').length
     const confirmed = sortedEvents.filter((e) => e.status === 'confirmed').length
@@ -408,6 +408,13 @@ export default function Home() {
                       {formatMonthKey(key)}: {eventStats.byMonth[key]}
                     </span>
                   ))}
+                  {eventStats.sortedMonths.length > 6 && (
+                    <span className={styles.statTagMore}>
+                      +{eventStats.sortedMonths.slice(6).reduce(
+                        (sum, key) => sum + eventStats.byMonth[key], 0
+                      )} more
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

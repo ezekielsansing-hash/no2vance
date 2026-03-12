@@ -391,6 +391,31 @@ export default function ImportPage() {
     downloadCSV(csv, `customers-backup-${date}.csv`)
   }
 
+  const handleClearAllData = () => {
+    const events = loadEvents()
+    const customers = loadCustomers()
+
+    if (events.length === 0 && customers.length === 0) {
+      alert('No data to clear')
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to delete all data?\n\n` +
+      `This will permanently remove:\n` +
+      `• ${events.length} booking(s)\n` +
+      `• ${customers.length} customer(s)\n\n` +
+      `This action cannot be undone. Consider exporting your data first.`
+    )
+
+    if (confirmed) {
+      localStorage.removeItem('no2vance-events')
+      localStorage.removeItem('no2vance-customers')
+      localStorage.removeItem('no2vance-custom-event-types')
+      window.location.reload()
+    }
+  }
+
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
@@ -645,6 +670,20 @@ export default function ImportPage() {
               Export Customers CSV
             </button>
           </div>
+        </section>
+
+        <section className={styles.dangerSection}>
+          <h2 className={styles.dangerTitle}>Danger Zone</h2>
+          <p className={styles.dangerDescription}>
+            Permanently delete all bookings and customers. This cannot be undone.
+          </p>
+          <button
+            type="button"
+            className={`${styles.button} ${styles.dangerButton}`}
+            onClick={handleClearAllData}
+          >
+            Clear All Data
+          </button>
         </section>
       </section>
     </main>
