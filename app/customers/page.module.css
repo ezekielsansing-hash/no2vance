@@ -107,36 +107,6 @@
   background: #f5f5f5;
 }
 
-/* Stats Section */
-.statsSection {
-  display: flex;
-  gap: 1.5rem;
-  align-items: flex-start;
-  padding: 0.75rem 0;
-  margin-bottom: 0.5rem;
-  border-bottom: 1px solid #eee;
-}
-
-.statCard {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-
-.statValue {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  line-height: 1;
-}
-
-.statLabel {
-  font-size: 0.72rem;
-  color: #666;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
 /* List Panel */
 .listPanel {
   background: #fff;
@@ -437,11 +407,6 @@
   .navLinks {
     width: 100%;
     justify-content: space-between;
-  }
-
-  .statsSection {
-    flex-direction: column;
-    gap: 0.75rem;
   }
 
   .detailActions {

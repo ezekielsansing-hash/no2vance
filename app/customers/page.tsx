@@ -93,17 +93,6 @@ export default function CustomersPage() {
     }
   }, [activeCustomer, customerBookings])
 
-  const globalStats = useMemo(() => {
-    const total = customers.length
-    const withMultipleBookings = customers.filter((c) => {
-      const count = events.filter((e) => e.customerId === c.id).length
-      return count > 1
-    }).length
-    const totalBookings = events.filter((e) => e.customerId).length
-    const avgBookings = total > 0 ? (totalBookings / total).toFixed(1) : '0'
-    return { total, withMultipleBookings, avgBookings }
-  }, [customers, events])
-
   function handleDelete(id: string) {
     const customer = customers.find((c) => c.id === id)
     if (!customer) return
@@ -153,23 +142,6 @@ export default function CustomersPage() {
             </div>
           </div>
         </header>
-
-        {customers.length > 0 && (
-          <section className={styles.statsSection}>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{globalStats.total}</span>
-              <span className={styles.statLabel}>Customers</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{globalStats.withMultipleBookings}</span>
-              <span className={styles.statLabel}>Repeat</span>
-            </div>
-            <div className={styles.statCard}>
-              <span className={styles.statValue}>{globalStats.avgBookings}</span>
-              <span className={styles.statLabel}>Avg Bookings</span>
-            </div>
-          </section>
-        )}
 
         <section className={styles.listPanel}>
           <div className={styles.panelHeader}>
