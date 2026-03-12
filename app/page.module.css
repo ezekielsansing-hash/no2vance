@@ -189,11 +189,22 @@
 /* Stats Section */
 .statsSection {
   display: flex;
-  justify-content: space-between;
-  gap: 1.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
   padding: 0.75rem 0;
   margin-bottom: 0.5rem;
   border-bottom: 1px solid #eee;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.statsRowDollars {
+  display: flex;
+  gap: 1.5rem;
 }
 
 .statsLeft {

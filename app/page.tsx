@@ -179,6 +179,30 @@ export default function Home() {
       return sum + amount
     }, 0)
 
+    // Confirmed bookings split by past/future
+    const pastConfirmed = events.filter(
+      (e) => e.status === 'confirmed' && e.eventDate && e.eventDate < todayStr
+    )
+    const futureConfirmed = events.filter(
+      (e) => e.status === 'confirmed' && e.eventDate && e.eventDate >= todayStr
+    )
+
+    // Revenue collected: full rate from past confirmed + deposits from future confirmed
+    const revenueCollected = pastConfirmed.reduce((sum, e) => {
+      const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+      return sum + amount
+    }, 0) + futureConfirmed.reduce((sum, e) => {
+      const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
+      return sum + deposit
+    }, 0)
+
+    // Amount due (confirmed bookings in the future - rate minus deposit)
+    const amountDue = futureConfirmed.reduce((sum, e) => {
+      const rate = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+      const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
+      return sum + (rate - deposit)
+    }, 0)
+
     return {
       total: sortedEvents.length,
       prospects,
@@ -186,12 +210,14 @@ export default function Home() {
       lost,
       conversionRate,
       totalLostRevenue,
+      revenueCollected,
+      amountDue,
       byYear,
       byMonth,
       sortedYears,
       sortedMonths,
     }
-  }, [sortedEvents, events])
+  }, [sortedEvents, events, todayStr])
 
   function handleDelete(id: string) {
     const event = events.find((e) => e.id === id)
@@ -366,30 +392,31 @@ export default function Home() {
 
         {sortedEvents.length > 0 && (
           <section className={styles.statsSection}>
-            <div className={styles.statsLeft}>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{eventStats.confirmed}</span>
-                <span className={styles.statLabel}>Confirmed</span>
+            <div className={styles.statsRow}>
+              <div className={styles.statsLeft}>
+                <div className={styles.statCard}>
+                  <span className={styles.statValue}>{eventStats.confirmed}</span>
+                  <span className={styles.statLabel}>Confirmed</span>
+                </div>
+                <div className={styles.statCard}>
+                  <span className={styles.statValue}>{eventStats.prospects}</span>
+                  <span className={styles.statLabel}>Prospects</span>
+                </div>
+                <div className={styles.statCard}>
+                  <span className={styles.statValue}>{eventStats.lost}</span>
+                  <span className={styles.statLabel}>Lost</span>
+                  {eventStats.totalLostRevenue > 0 && (
+                    <span className={styles.statSubvalue}>
+                      ${eventStats.totalLostRevenue.toLocaleString()}
+                    </span>
+                  )}
+                </div>
+                <div className={styles.statCard}>
+                  <span className={styles.statValue}>{eventStats.conversionRate}%</span>
+                  <span className={styles.statLabel}>Conversion</span>
+                </div>
               </div>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{eventStats.prospects}</span>
-                <span className={styles.statLabel}>Prospects</span>
-              </div>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{eventStats.lost}</span>
-                <span className={styles.statLabel}>Lost</span>
-                {eventStats.totalLostRevenue > 0 && (
-                  <span className={styles.statSubvalue}>
-                    ${eventStats.totalLostRevenue.toLocaleString()}
-                  </span>
-                )}
-              </div>
-              <div className={styles.statCard}>
-                <span className={styles.statValue}>{eventStats.conversionRate}%</span>
-                <span className={styles.statLabel}>Conversion</span>
-              </div>
-            </div>
-            <div className={styles.statsRight}>
+              <div className={styles.statsRight}>
               <div className={styles.statGroup}>
                 <span className={styles.statGroupLabel}>By Year</span>
                 <div className={styles.statTags}>
@@ -418,6 +445,27 @@ export default function Home() {
                 </div>
               </div>
             </div>
+          </div>
+            {(eventStats.revenueCollected > 0 || eventStats.amountDue > 0) && (
+              <div className={styles.statsRowDollars}>
+                {eventStats.revenueCollected > 0 && (
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>
+                      ${eventStats.revenueCollected.toLocaleString()}
+                    </span>
+                    <span className={styles.statLabel}>Collected</span>
+                  </div>
+                )}
+                {eventStats.amountDue > 0 && (
+                  <div className={styles.statCard}>
+                    <span className={styles.statValue}>
+                      ${eventStats.amountDue.toLocaleString()}
+                    </span>
+                    <span className={styles.statLabel}>Due</span>
+                  </div>
+                )}
+              </div>
+            )}
           </section>
         )}
 
