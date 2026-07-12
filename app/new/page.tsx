@@ -12,13 +12,12 @@ import {
   EMPTY_FORM,
   EventFormState,
   EventRecord,
+  insertCustomer,
+  insertEvent,
   loadCustomers,
   loadCustomEventTypes,
   loadEvents,
-  migrateExistingBookingsToCustomers,
-  saveCustomers,
   saveCustomEventType,
-  saveEvents,
 } from '../lib/events'
 
 export default function NewBookingPage() {
@@ -48,10 +47,9 @@ export default function NewBookingPage() {
     : []
 
   useEffect(() => {
-    migrateExistingBookingsToCustomers()
-    setCustomEventTypes(loadCustomEventTypes())
-    setCustomers(loadCustomers())
-    setExistingEvents(loadEvents())
+    loadCustomEventTypes().then(setCustomEventTypes)
+    loadCustomers().then(setCustomers)
+    loadEvents().then(setExistingEvents)
   }, [])
 
   function handleCustomerSelect(customerId: string) {
@@ -126,40 +124,43 @@ export default function NewBookingPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
-
-    // Save custom event type if it's new
-    if (showCustomEventType && form.eventType) {
-      saveCustomEventType(form.eventType)
-    }
 
     const now = new Date()
     let customerId = form.customerId
 
-    // If adding new customer, create the customer record first
-    if (showNewCustomer && form.customerName && form.customerContact) {
-      const newCustomer: Customer = {
-        id: `cust-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: form.customerName,
-        contact: form.customerContact,
+    try {
+      // Save custom event type if it's new
+      if (showCustomEventType && form.eventType) {
+        await saveCustomEventType(form.eventType)
+      }
+
+      // If adding new customer, create the customer record first
+      if (showNewCustomer && form.customerName && form.customerContact) {
+        const newCustomer: Customer = {
+          id: `cust-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: form.customerName,
+          contact: form.customerContact,
+          createdAt: now.toISOString(),
+        }
+        await insertCustomer(newCustomer)
+        customerId = newCustomer.id
+      }
+
+      const record: EventRecord = {
+        ...form,
+        customerId,
+        id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
         createdAt: now.toISOString(),
       }
-      const existingCustomers = loadCustomers()
-      saveCustomers([newCustomer, ...existingCustomers])
-      customerId = newCustomer.id
-    }
 
-    const record: EventRecord = {
-      ...form,
-      customerId,
-      id: `${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
-      createdAt: now.toISOString(),
+      await insertEvent(record)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed')
+      return
     }
-
-    const existing = loadEvents()
-    saveEvents([record, ...existing])
     router.push('/')
   }
 

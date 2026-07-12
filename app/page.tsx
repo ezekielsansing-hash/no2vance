@@ -3,15 +3,18 @@
 import { useEffect, useMemo, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import styles from './page.module.css'
 import {
   Customer,
   EventRecord,
+  deleteEvent,
+  hasLegacyLocalData,
   loadCustomers,
   loadEvents,
-  migrateExistingBookingsToCustomers,
-  saveEvents,
+  updateEvent,
 } from './lib/events'
+import { getSupabase } from './lib/supabase'
 
 type ViewMode = 'list' | 'calendar'
 type SortOrder = 'asc' | 'desc'
@@ -59,12 +62,20 @@ export default function Home() {
   const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'confirmed']))
 
+  const router = useRouter()
+  const [showMigrateBanner, setShowMigrateBanner] = useState(false)
+
   useEffect(() => {
-    migrateExistingBookingsToCustomers()
-    const initial = loadEvents()
-    setEvents(initial)
-    setCustomers(loadCustomers())
+    loadEvents().then(setEvents)
+    loadCustomers().then(setCustomers)
+    setShowMigrateBanner(hasLegacyLocalData())
   }, [])
+
+  async function handleSignOut() {
+    await getSupabase().auth.signOut()
+    router.push('/login')
+    router.refresh()
+  }
 
   function getCustomerName(event: EventRecord): string {
     if (event.customerId) {
@@ -141,22 +152,23 @@ export default function Home() {
   )
 
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const event = events.find((e) => e.id === id)
     const name = event?.eventType || 'this event'
     if (!window.confirm(`Are you sure you want to delete "${name}"?`)) {
       return
     }
-    setEvents((prev) => {
-      const next = prev.filter((e) => e.id !== id)
-      saveEvents(next)
-      return next
-    })
-    setActiveId((current) => {
-      if (current !== id) return current
-      const currentEvents = loadEvents()
-      return currentEvents[0]?.id ?? null
-    })
+    try {
+      await deleteEvent(id)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed')
+      return
+    }
+    const remaining = events.filter((e) => e.id !== id)
+    setEvents(remaining)
+    setActiveId((current) =>
+      current === id ? remaining[0]?.id ?? null : current,
+    )
   }
 
   function handleDateFromChange(date: string) {
@@ -172,28 +184,34 @@ export default function Home() {
     setDateTo('')
   }
 
-  function handleConvert(id: string) {
-    setEvents((prev) => {
-      const next = prev.map((e) =>
-        e.id === id
-          ? { ...e, status: 'confirmed' as const, convertedAt: new Date().toISOString() }
-          : e
-      )
-      saveEvents(next)
-      return next
-    })
+  async function handleConvert(id: string) {
+    const event = events.find((e) => e.id === id)
+    if (!event) return
+    const updated: EventRecord = {
+      ...event,
+      status: 'confirmed',
+      convertedAt: new Date().toISOString(),
+    }
+    try {
+      await updateEvent(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Update failed')
+      return
+    }
+    setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
   }
 
-  function handleMarkAsLost(id: string) {
-    setEvents((prev) => {
-      const next = prev.map((e) =>
-        e.id === id
-          ? { ...e, status: 'lost' as const }
-          : e
-      )
-      saveEvents(next)
-      return next
-    })
+  async function handleMarkAsLost(id: string) {
+    const event = events.find((e) => e.id === id)
+    if (!event) return
+    const updated: EventRecord = { ...event, status: 'lost' }
+    try {
+      await updateEvent(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Update failed')
+      return
+    }
+    setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
   }
 
   // Calendar helpers
@@ -308,9 +326,28 @@ export default function Home() {
               <Link href="/import" className={styles.navLink}>
                 Import
               </Link>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className={styles.signOutButton}
+              >
+                Sign out
+              </button>
             </div>
           </div>
         </header>
+
+        {showMigrateBanner && (
+          <div className={styles.migrateBanner}>
+            <span>
+              This browser still has data saved locally that isn&apos;t in the
+              shared database yet.
+            </span>
+            <Link href="/import" className={styles.migrateBannerLink}>
+              Move it to the cloud →
+            </Link>
+          </div>
+        )}
 
 
         <section className={styles.listPanel}>

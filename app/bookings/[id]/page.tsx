@@ -12,13 +12,12 @@ import {
   EMPTY_FORM,
   EventFormState,
   EventRecord,
+  insertCustomer,
   loadCustomers,
   loadCustomEventTypes,
   loadEvents,
-  migrateExistingBookingsToCustomers,
-  saveCustomers,
   saveCustomEventType,
-  saveEvents,
+  updateEvent,
 } from '../../lib/events'
 
 export default function EditBookingPage() {
@@ -40,10 +39,7 @@ export default function EditBookingPage() {
   const [existingEvents, setExistingEvents] = useState<EventRecord[]>([])
 
   useEffect(() => {
-    migrateExistingBookingsToCustomers()
-    setCustomEventTypes(loadCustomEventTypes())
-    setCustomers(loadCustomers())
-    setExistingEvents(loadEvents())
+    loadCustomers().then(setCustomers)
   }, [])
 
   // Check for existing events on the selected date (excluding current event)
@@ -78,37 +74,50 @@ export default function EditBookingPage() {
 
   useEffect(() => {
     if (!id) return
-    const events = loadEvents()
-    const existing = events.find((e) => e.id === id)
-    if (!existing) {
-      router.push('/')
-      return
+    let cancelled = false
+    async function load() {
+      const [events, customEventTypesList] = await Promise.all([
+        loadEvents(),
+        loadCustomEventTypes(),
+      ])
+      if (cancelled) return
+      setExistingEvents(events)
+      setCustomEventTypes(customEventTypesList)
+      const existing = events.find((e) => e.id === id)
+      if (!existing) {
+        router.push('/')
+        return
+      }
+      const { id: _id, createdAt: _createdAt, ...rest } = existing
+      // Format phone number if it exists but isn't formatted
+      if (rest.customerContact) {
+        rest.customerContact = formatPhoneNumber(rest.customerContact)
+      }
+      // Format rate/package as currency if it exists
+      if (rest.ratePackage && !rest.ratePackage.startsWith('$')) {
+        rest.ratePackage = formatCurrency(rest.ratePackage)
+      }
+      setForm(rest)
+      // Set selected customer if customerId exists
+      if (rest.customerId) {
+        setSelectedCustomerId(rest.customerId)
+      }
+      // Check if event type is custom (not in default or saved custom types)
+      const allKnownTypes = [...DEFAULT_EVENT_TYPES, ...customEventTypesList]
+      if (rest.eventType && !allKnownTypes.includes(rest.eventType)) {
+        setShowCustomEventType(true)
+        setCustomEventTypeInput(rest.eventType)
+      }
+      // Set collapsed state based on status (prospects collapsed, confirmed expanded)
+      const isConfirmed = rest.status === 'confirmed'
+      setLogisticsOpen(isConfirmed)
+      setVendorsOpen(isConfirmed)
+      setLoaded(true)
     }
-    const { id: _id, createdAt: _createdAt, ...rest } = existing
-    // Format phone number if it exists but isn't formatted
-    if (rest.customerContact) {
-      rest.customerContact = formatPhoneNumber(rest.customerContact)
+    load()
+    return () => {
+      cancelled = true
     }
-    // Format rate/package as currency if it exists
-    if (rest.ratePackage && !rest.ratePackage.startsWith('$')) {
-      rest.ratePackage = formatCurrency(rest.ratePackage)
-    }
-    setForm(rest)
-    // Set selected customer if customerId exists
-    if (rest.customerId) {
-      setSelectedCustomerId(rest.customerId)
-    }
-    // Check if event type is custom (not in default or saved custom types)
-    const allKnownTypes = [...DEFAULT_EVENT_TYPES, ...loadCustomEventTypes()]
-    if (rest.eventType && !allKnownTypes.includes(rest.eventType)) {
-      setShowCustomEventType(true)
-      setCustomEventTypeInput(rest.eventType)
-    }
-    // Set collapsed state based on status (prospects collapsed, confirmed expanded)
-    const isConfirmed = rest.status === 'confirmed'
-    setLogisticsOpen(isConfirmed)
-    setVendorsOpen(isConfirmed)
-    setLoaded(true)
   }, [id, router])
 
   function handleChange<K extends keyof EventFormState>(
@@ -158,49 +167,50 @@ export default function EditBookingPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate() || !id) return
 
-    // Save custom event type if it's new
-    if (showCustomEventType && form.eventType) {
-      saveCustomEventType(form.eventType)
-    }
+    const existing = existingEvents.find((e) => e.id === id)
+    if (!existing) return
 
     const now = new Date()
     let customerId = form.customerId
 
-    // If adding new customer, create the customer record first
-    if (showNewCustomer && form.customerName && form.customerContact) {
-      const newCustomer: Customer = {
-        id: `cust-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: form.customerName,
-        contact: form.customerContact,
-        createdAt: now.toISOString(),
+    try {
+      // Save custom event type if it's new
+      if (showCustomEventType && form.eventType) {
+        await saveCustomEventType(form.eventType)
       }
-      const existingCustomers = loadCustomers()
-      saveCustomers([newCustomer, ...existingCustomers])
-      customerId = newCustomer.id
-    }
 
-    const events = loadEvents()
-    const updated: EventRecord[] = events.map((event) =>
-      event.id === id
-        ? {
-            ...event,
-            ...form,
-            customerId,
-          }
-        : event,
-    )
-    saveEvents(updated)
+      // If adding new customer, create the customer record first
+      if (showNewCustomer && form.customerName && form.customerContact) {
+        const newCustomer: Customer = {
+          id: `cust-${now.getTime()}-${Math.random().toString(36).slice(2, 8)}`,
+          name: form.customerName,
+          contact: form.customerContact,
+          createdAt: now.toISOString(),
+        }
+        await insertCustomer(newCustomer)
+        customerId = newCustomer.id
+      }
+
+      const updated: EventRecord = {
+        ...existing,
+        ...form,
+        customerId,
+      }
+      await updateEvent(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed')
+      return
+    }
     router.push('/')
   }
 
   function handleReset() {
     if (!id) return
-    const events = loadEvents()
-    const existing = events.find((e) => e.id === id)
+    const existing = existingEvents.find((e) => e.id === id)
     if (!existing) return
     const { id: _id, createdAt: _createdAt, ...rest } = existing
     setForm(rest)

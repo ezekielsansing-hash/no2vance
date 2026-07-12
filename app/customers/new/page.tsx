@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
-import { Customer, loadCustomers, saveCustomers } from '../../lib/events'
+import { Customer, insertCustomer } from '../../lib/events'
 
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -41,7 +41,7 @@ export default function NewCustomerPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!validate()) return
 
@@ -55,8 +55,12 @@ export default function NewCustomerPage() {
       createdAt: now.toISOString(),
     }
 
-    const existing = loadCustomers()
-    saveCustomers([customer, ...existing])
+    try {
+      await insertCustomer(customer)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed')
+      return
+    }
     router.push('/customers')
   }
 

@@ -7,10 +7,9 @@ import styles from './page.module.css'
 import {
   Customer,
   EventRecord,
+  deleteCustomer,
   loadCustomers,
   loadEvents,
-  migrateExistingBookingsToCustomers,
-  saveCustomers,
 } from '../lib/events'
 
 function formatPhoneNumber(value: string): string {
@@ -42,10 +41,8 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('')
 
   useEffect(() => {
-    // Run migration on first load
-    migrateExistingBookingsToCustomers()
-    setCustomers(loadCustomers())
-    setEvents(loadEvents())
+    loadCustomers().then(setCustomers)
+    loadEvents().then(setEvents)
   }, [])
 
   const filteredCustomers = useMemo(() => {
@@ -93,17 +90,19 @@ export default function CustomersPage() {
     }
   }, [activeCustomer, customerBookings])
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
     const customer = customers.find((c) => c.id === id)
     if (!customer) return
     if (!window.confirm(`Are you sure you want to delete "${customer.name}"?`)) {
       return
     }
-    setCustomers((prev) => {
-      const next = prev.filter((c) => c.id !== id)
-      saveCustomers(next)
-      return next
-    })
+    try {
+      await deleteCustomer(id)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed')
+      return
+    }
+    setCustomers((prev) => prev.filter((c) => c.id !== id))
     setActiveId((current) => {
       if (current !== id) return current
       const remaining = customers.filter((c) => c.id !== id)

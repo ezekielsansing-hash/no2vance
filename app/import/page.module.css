@@ -445,3 +445,11 @@
     flex-direction: column;
   }
 }
+
+.migrateSection {
+  margin-bottom: 2rem;
+  padding: 1rem 1.2rem;
+  background: #fff8e6;
+  border: 1px solid #e8d9a0;
+  border-radius: 6px;
+}

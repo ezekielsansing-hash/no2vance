@@ -40,8 +40,8 @@ export default function AnalyticsPage() {
   )
 
   useEffect(() => {
-    setEvents(loadEvents())
-    setCustomers(loadCustomers())
+    loadEvents().then(setEvents)
+    loadCustomers().then(setCustomers)
   }, [])
 
   const todayStr = useMemo(() => {

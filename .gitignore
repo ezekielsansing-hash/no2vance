@@ -15,8 +15,12 @@ build
 # debug
 npm-debug.log*
 
-# env files
+# env files (but keep the example template)
 .env*
+!.env.example
+
+# local editor/agent settings
+.claude/
 
 # typescript
 *.tsbuildinfo

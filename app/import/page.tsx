@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './page.module.css'
@@ -8,10 +8,15 @@ import {
   BookingStatus,
   Customer,
   EventRecord,
+  clearLegacyLocalData,
+  deleteAllData,
+  exportAllData,
+  hasLegacyLocalData,
+  insertCustomers,
+  insertEvents,
   loadCustomers,
   loadEvents,
-  saveCustomers,
-  saveEvents,
+  migrateLocalDataToCloud,
 } from '../lib/events'
 
 type ImportType = 'bookings' | 'customers'
@@ -197,6 +202,35 @@ export default function ImportPage() {
     success: boolean
     message: string
   } | null>(null)
+  const [showMigrate, setShowMigrate] = useState(false)
+  const [migrating, setMigrating] = useState(false)
+  const [migrateStatus, setMigrateStatus] = useState('')
+
+  useEffect(() => {
+    setShowMigrate(hasLegacyLocalData())
+  }, [])
+
+  const handleMigrate = async () => {
+    setMigrating(true)
+    setMigrateStatus('')
+    try {
+      const counts = await migrateLocalDataToCloud()
+      setMigrateStatus(
+        `Moved ${counts.events} bookings, ${counts.customers} customers, ` +
+          `${counts.vendors} vendors, and ${counts.eventTypes} custom event types to the shared database.`,
+      )
+      clearLegacyLocalData()
+      setShowMigrate(false)
+    } catch (err) {
+      setMigrateStatus(
+        err instanceof Error
+          ? `Migration failed: ${err.message}`
+          : 'Migration failed',
+      )
+    } finally {
+      setMigrating(false)
+    }
+  }
 
   const handleFile = useCallback(
     (file: File) => {
@@ -247,11 +281,11 @@ export default function ImportPage() {
   const validRows = parseResult?.rows.filter((r) => r.errors.length === 0) || []
   const errorRows = parseResult?.rows.filter((r) => r.errors.length > 0) || []
 
-  const handleImport = useCallback(() => {
+  const handleImport = useCallback(async () => {
     if (!parseResult || validRows.length === 0) return
 
     if (importType === 'customers') {
-      const existingCustomers = loadCustomers()
+      const existingCustomers = await loadCustomers()
       const existingPhones = new Set(
         existingCustomers.map((c) => normalizePhone(c.contact))
       )
@@ -278,7 +312,15 @@ export default function ImportPage() {
         newCustomers.push(customer)
       })
 
-      saveCustomers([...existingCustomers, ...newCustomers])
+      try {
+        await insertCustomers(newCustomers)
+      } catch (err) {
+        setImportStatus({
+          success: false,
+          message: err instanceof Error ? err.message : 'Import failed',
+        })
+        return
+      }
 
       const msg =
         skipped > 0
@@ -288,8 +330,7 @@ export default function ImportPage() {
       setParseResult(null)
     } else {
       // Bookings import
-      const existingEvents = loadEvents()
-      const existingCustomers = loadCustomers()
+      const existingCustomers = await loadCustomers()
 
       // Match customers by name+phone combination (not just phone)
       const customerKey = (name: string, phone: string) =>
@@ -352,10 +393,16 @@ export default function ImportPage() {
         newEvents.push(event)
       })
 
-      if (newCustomers.length > 0) {
-        saveCustomers([...existingCustomers, ...newCustomers])
+      try {
+        await insertCustomers(newCustomers)
+        await insertEvents(newEvents)
+      } catch (err) {
+        setImportStatus({
+          success: false,
+          message: err instanceof Error ? err.message : 'Import failed',
+        })
+        return
       }
-      saveEvents([...existingEvents, ...newEvents])
 
       const customerMsg =
         newCustomers.length > 0
@@ -374,8 +421,8 @@ export default function ImportPage() {
     setImportStatus(null)
   }
 
-  const handleExportBookings = () => {
-    const events = loadEvents()
+  const handleExportBookings = async () => {
+    const events = await loadEvents()
     if (events.length === 0) {
       alert('No bookings to export')
       return
@@ -385,8 +432,8 @@ export default function ImportPage() {
     downloadCSV(csv, `bookings-backup-${date}.csv`)
   }
 
-  const handleExportCustomers = () => {
-    const customers = loadCustomers()
+  const handleExportCustomers = async () => {
+    const customers = await loadCustomers()
     if (customers.length === 0) {
       alert('No customers to export')
       return
@@ -396,9 +443,22 @@ export default function ImportPage() {
     downloadCSV(csv, `customers-backup-${date}.csv`)
   }
 
-  const handleClearAllData = () => {
-    const events = loadEvents()
-    const customers = loadCustomers()
+  const handleDownloadBackup = async () => {
+    const backup = await exportAllData()
+    const blob = new Blob([JSON.stringify(backup, null, 2)], {
+      type: 'application/json',
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `no2vance-backup-${backup.exportedAt.slice(0, 10)}.json`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const handleClearAllData = async () => {
+    const events = await loadEvents()
+    const customers = await loadCustomers()
 
     if (events.length === 0 && customers.length === 0) {
       alert('No data to clear')
@@ -406,17 +466,21 @@ export default function ImportPage() {
     }
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete all data?\n\n` +
-      `This will permanently remove:\n` +
+      `Are you sure you want to delete all data for EVERYONE who uses this site?\n\n` +
+      `This will permanently remove from the shared database:\n` +
       `• ${events.length} booking(s)\n` +
-      `• ${customers.length} customer(s)\n\n` +
-      `This action cannot be undone. Consider exporting your data first.`
+      `• ${customers.length} customer(s)\n` +
+      `• all saved vendors and custom event types\n\n` +
+      `This action cannot be undone. Download a backup first.`
     )
 
     if (confirmed) {
-      localStorage.removeItem('no2vance-events')
-      localStorage.removeItem('no2vance-customers')
-      localStorage.removeItem('no2vance-custom-event-types')
+      try {
+        await deleteAllData()
+      } catch (err) {
+        alert(err instanceof Error ? err.message : 'Clear failed')
+        return
+      }
       window.location.reload()
     }
   }
@@ -458,6 +522,33 @@ export default function ImportPage() {
             </div>
           </div>
         </header>
+
+        {(showMigrate || migrateStatus) && (
+          <section className={styles.migrateSection}>
+            <h2 className={styles.pageTitle}>Move Local Data to the Cloud</h2>
+            {showMigrate && (
+              <>
+                <p className={styles.exportDescription}>
+                  This browser has data saved from before the site moved to a
+                  shared database. Move it over so everyone can see it — this
+                  only needs to happen once, from the browser that has the
+                  data.
+                </p>
+                <button
+                  type="button"
+                  className={`${styles.button} ${styles.primaryButton}`}
+                  onClick={handleMigrate}
+                  disabled={migrating}
+                >
+                  {migrating ? 'Moving…' : 'Move Data to Cloud'}
+                </button>
+              </>
+            )}
+            {migrateStatus && (
+              <p className={styles.exportDescription}>{migrateStatus}</p>
+            )}
+          </section>
+        )}
 
         <section className={styles.importSection}>
           <h1 className={styles.pageTitle}>Import Data</h1>
@@ -661,9 +752,24 @@ export default function ImportPage() {
         </section>
 
         <section className={styles.exportSection}>
-          <h2 className={styles.pageTitle}>Export Data</h2>
+          <h2 className={styles.pageTitle}>Backup &amp; Export</h2>
           <p className={styles.exportDescription}>
-            Download your data as CSV files for backup. These files can be re-imported using the import tool above.
+            Download a full backup (everything: bookings, customers, vendors,
+            event types) as a JSON file. Do this regularly — it&apos;s your
+            recovery copy until automatic database backups are turned on.
+          </p>
+          <div className={styles.exportButtons}>
+            <button
+              type="button"
+              className={`${styles.button} ${styles.primaryButton}`}
+              onClick={handleDownloadBackup}
+            >
+              Download Full Backup (JSON)
+            </button>
+          </div>
+          <p className={styles.exportDescription}>
+            Or download CSV files, which can be re-imported using the import
+            tool above.
           </p>
           <div className={styles.exportButtons}>
             <button

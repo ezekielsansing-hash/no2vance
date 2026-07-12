@@ -4,19 +4,13 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import styles from './page.module.css'
-
-type SavedVendor = {
-  id: string
-  name: string
-  category: string
-  description: string
-  phone: string
-  website: string
-  address: string
-  priceRange: string
-  notes: string
-  savedAt: string
-}
+import {
+  SavedVendor,
+  deleteSavedVendor,
+  insertSavedVendor,
+  loadSavedVendors,
+  updateSavedVendor,
+} from '../lib/events'
 
 const CATEGORIES = [
   'Florists',
@@ -34,16 +28,6 @@ const CATEGORIES = [
 ]
 
 const PRICE_RANGES = ['$', '$$', '$$$', '$$$$']
-
-function loadSavedVendors(): SavedVendor[] {
-  if (typeof window === 'undefined') return []
-  const data = localStorage.getItem('no2vance-saved-vendors')
-  return data ? JSON.parse(data) : []
-}
-
-function saveSavedVendors(vendors: SavedVendor[]): void {
-  localStorage.setItem('no2vance-saved-vendors', JSON.stringify(vendors))
-}
 
 export default function VendorsPage() {
   const [savedVendors, setSavedVendors] = useState<SavedVendor[]>([])
@@ -64,13 +48,13 @@ export default function VendorsPage() {
   })
 
   useEffect(() => {
-    setSavedVendors(loadSavedVendors())
+    loadSavedVendors().then(setSavedVendors)
   }, [])
 
   // Get categories that have vendors
   const usedCategories = [...new Set(savedVendors.map((v) => v.category))].sort()
 
-  const handleAddVendor = () => {
+  const handleAddVendor = async () => {
     if (!formData.name.trim() || !formData.category) return
 
     const newVendor: SavedVendor = {
@@ -86,43 +70,55 @@ export default function VendorsPage() {
       savedAt: new Date().toISOString(),
     }
 
-    const updated = [...savedVendors, newVendor]
-    setSavedVendors(updated)
-    saveSavedVendors(updated)
+    try {
+      await insertSavedVendor(newVendor)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed')
+      return
+    }
+    setSavedVendors([...savedVendors, newVendor])
     resetForm()
     setShowAddForm(false)
   }
 
-  const handleUpdateVendor = () => {
+  const handleUpdateVendor = async () => {
     if (!editingVendor || !formData.name.trim() || !formData.category) return
 
-    const updated = savedVendors.map((v) =>
-      v.id === editingVendor.id
-        ? {
-            ...v,
-            name: formData.name.trim(),
-            category: formData.category,
-            description: formData.description.trim(),
-            phone: formData.phone.trim(),
-            website: formData.website.trim(),
-            address: formData.address.trim(),
-            priceRange: formData.priceRange,
-            notes: formData.notes.trim(),
-          }
-        : v
+    const updatedVendor: SavedVendor = {
+      ...editingVendor,
+      name: formData.name.trim(),
+      category: formData.category,
+      description: formData.description.trim(),
+      phone: formData.phone.trim(),
+      website: formData.website.trim(),
+      address: formData.address.trim(),
+      priceRange: formData.priceRange,
+      notes: formData.notes.trim(),
+    }
+
+    try {
+      await updateSavedVendor(updatedVendor)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Update failed')
+      return
+    }
+    setSavedVendors(
+      savedVendors.map((v) => (v.id === editingVendor.id ? updatedVendor : v)),
     )
-    setSavedVendors(updated)
-    saveSavedVendors(updated)
     resetForm()
     setEditingVendor(null)
     setShowAddForm(false)
   }
 
-  const handleDeleteVendor = (id: string) => {
+  const handleDeleteVendor = async (id: string) => {
     if (!confirm('Are you sure you want to delete this vendor?')) return
-    const updated = savedVendors.filter((v) => v.id !== id)
-    setSavedVendors(updated)
-    saveSavedVendors(updated)
+    try {
+      await deleteSavedVendor(id)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Delete failed')
+      return
+    }
+    setSavedVendors(savedVendors.filter((v) => v.id !== id))
   }
 
   const startEditVendor = (vendor: SavedVendor) => {

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
-import { Customer, loadCustomers, saveCustomers } from '../../lib/events'
+import { Customer, loadCustomers, updateCustomer } from '../../lib/events'
 
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -25,19 +25,28 @@ export default function EditCustomerPage() {
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [loaded, setLoaded] = useState(false)
 
+  const [original, setOriginal] = useState<Customer | null>(null)
+
   useEffect(() => {
     if (!id) return
-    const customers = loadCustomers()
-    const existing = customers.find((c) => c.id === id)
-    if (!existing) {
-      router.push('/customers')
-      return
+    let cancelled = false
+    loadCustomers().then((customers) => {
+      if (cancelled) return
+      const existing = customers.find((c) => c.id === id)
+      if (!existing) {
+        router.push('/customers')
+        return
+      }
+      setOriginal(existing)
+      setName(existing.name)
+      setContact(formatPhoneNumber(existing.contact))
+      setEmail(existing.email || '')
+      setNotes(existing.notes || '')
+      setLoaded(true)
+    })
+    return () => {
+      cancelled = true
     }
-    setName(existing.name)
-    setContact(formatPhoneNumber(existing.contact))
-    setEmail(existing.email || '')
-    setNotes(existing.notes || '')
-    setLoaded(true)
   }, [id, router])
 
   function isValidPhone(value: string): boolean {
@@ -60,35 +69,32 @@ export default function EditCustomerPage() {
     return Object.keys(nextErrors).length === 0
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!validate() || !id) return
+    if (!validate() || !id || !original) return
 
-    const customers = loadCustomers()
-    const updated: Customer[] = customers.map((c) =>
-      c.id === id
-        ? {
-            ...c,
-            name: name.trim(),
-            contact: contact.trim(),
-            email: email.trim() || undefined,
-            notes: notes.trim() || undefined,
-          }
-        : c
-    )
-    saveCustomers(updated)
+    const updated: Customer = {
+      ...original,
+      name: name.trim(),
+      contact: contact.trim(),
+      email: email.trim() || undefined,
+      notes: notes.trim() || undefined,
+    }
+    try {
+      await updateCustomer(updated)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Save failed')
+      return
+    }
     router.push('/customers')
   }
 
   function handleReset() {
-    if (!id) return
-    const customers = loadCustomers()
-    const existing = customers.find((c) => c.id === id)
-    if (!existing) return
-    setName(existing.name)
-    setContact(formatPhoneNumber(existing.contact))
-    setEmail(existing.email || '')
-    setNotes(existing.notes || '')
+    if (!original) return
+    setName(original.name)
+    setContact(formatPhoneNumber(original.contact))
+    setEmail(original.email || '')
+    setNotes(original.notes || '')
     setErrors({})
   }
 
