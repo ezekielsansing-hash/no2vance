@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
+import SiteHeader from '../components/SiteHeader'
 import styles from './page.module.css'
 import {
   Customer,
@@ -113,37 +113,7 @@ export default function CustomersPage() {
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <Image
-              src="/logo.png"
-              alt="No. 2 Vance Event Venue"
-              width={400}
-              height={180}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.navLinks}>
-              <Link href="/" className={styles.navLink}>
-                Bookings
-              </Link>
-              <Link href="/customers" className={`${styles.navLink} ${styles.navLinkActive}`}>
-                Customers
-              </Link>
-              <Link href="/analytics" className={styles.navLink}>
-                Analytics
-              </Link>
-              <Link href="/vendors" className={styles.navLink}>
-                Vendors
-              </Link>
-              <Link href="/import" className={styles.navLink}>
-                Import
-              </Link>
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
 
         <section className={styles.listPanel}>
           <div className={styles.panelHeader}>
@@ -194,8 +164,20 @@ export default function CustomersPage() {
                 })}
               </div>
 
+              <div
+                className={`${styles.detailWrap} ${
+                  activeCustomer ? styles.detailWrapOpen : ''
+                }`}
+              >
               {activeCustomer ? (
                 <aside className={styles.detailPanel}>
+                  <button
+                    type="button"
+                    className={styles.detailClose}
+                    onClick={() => setActiveId(null)}
+                  >
+                    ← Back to list
+                  </button>
                   <div className={styles.detailHeader}>
                     <div>
                       <h3 className={styles.detailTitle}>{activeCustomer.name}</h3>
@@ -308,6 +290,7 @@ export default function CustomersPage() {
                   <p>Select a customer to view details</p>
                 </div>
               )}
+              </div>
             </div>
           )}
         </section>

@@ -14,71 +14,6 @@
   padding: 0;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  gap: 1.5rem;
-  align-items: center;
-  position: relative;
-  padding-bottom: 1.4rem;
-  margin-bottom: 1.6rem;
-}
-
-.header::after {
-  content: '';
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 6px;
-  background: repeating-linear-gradient(-45deg, var(--ink) 0 6px, transparent 6px 12px);
-}
-
-.headerLeft {
-  display: flex;
-  align-items: center;
-}
-
-.logo {
-  height: auto;
-  width: auto;
-  max-height: 160px;
-  object-fit: contain;
-}
-
-.headerActions {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-}
-
-.navLinks {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.navLink {
-  padding: 0.32rem 0.75rem;
-  font-family: var(--display);
-  font-weight: 600;
-  font-size: 0.8rem;
-  color: var(--ink-soft);
-  text-decoration: none;
-  border: 2px solid transparent;
-  transition: color 120ms ease, border-color 120ms ease;
-}
-
-.navLink:hover {
-  color: var(--ink);
-}
-
-.navLinkActive {
-  color: var(--ink);
-  border-color: var(--ink);
-  background: var(--yellow);
-  box-shadow: var(--shadow-sm);
-}
-
 .button {
   border-radius: 0;
   padding: 0.38rem 0.9rem;
@@ -246,6 +181,12 @@
 }
 
 /* Detail Panel */
+.detailWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
 .detailPanel {
   border-radius: 0;
   border: 2px solid var(--ink);
@@ -262,6 +203,26 @@
   justify-content: space-between;
   gap: 0.7rem;
   align-items: flex-start;
+}
+
+/* Mobile-only control; shown via the 960px media query */
+.detailClose {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  gap: 0.4rem;
+  min-height: 44px;
+  padding: 0.5rem 0.85rem;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
 
 .detailTitle {
@@ -444,24 +405,31 @@
   .listLayout {
     grid-template-columns: minmax(0, 1fr);
   }
+
+  /* On small screens the detail panel takes over the screen instead of
+     stacking below the full customer list */
+  .detailWrap {
+    display: none;
+  }
+
+  .detailWrapOpen {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: var(--paper);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.9rem;
+  }
+
+  .detailClose {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 640px) {
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .headerActions {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .navLinks {
-    width: 100%;
-    justify-content: space-between;
-  }
 
   .detailActions {
     flex-direction: column;

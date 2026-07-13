@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import SiteHeader from '../components/SiteHeader'
 import styles from './page.module.css'
 import {
   SavedVendor,
@@ -167,37 +166,7 @@ export default function VendorsPage() {
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <Image
-              src="/logo.png"
-              alt="No. 2 Vance Event Venue"
-              width={400}
-              height={180}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.navLinks}>
-              <Link href="/" className={styles.navLink}>
-                Bookings
-              </Link>
-              <Link href="/customers" className={styles.navLink}>
-                Customers
-              </Link>
-              <Link href="/analytics" className={styles.navLink}>
-                Analytics
-              </Link>
-              <Link href="/vendors" className={`${styles.navLink} ${styles.navLinkActive}`}>
-                Vendors
-              </Link>
-              <Link href="/import" className={styles.navLink}>
-                Import
-              </Link>
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
 
         <div className={styles.pageHeader}>
           <div className={styles.pageHeaderLeft}>

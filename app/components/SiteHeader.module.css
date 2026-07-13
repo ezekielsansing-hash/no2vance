@@ -1,0 +1,122 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1.5rem;
+  align-items: center;
+  position: relative;
+  padding-bottom: 1.4rem;
+  margin-bottom: 1.6rem;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: repeating-linear-gradient(-45deg, var(--ink) 0 6px, transparent 6px 12px);
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+}
+
+.logo {
+  height: auto;
+  width: auto;
+  max-height: 160px;
+  object-fit: contain;
+}
+
+.navLinks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.navLink {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+  border: 2px solid transparent;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.navLink:hover {
+  color: var(--ink);
+}
+
+.navLinkActive {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
+}
+
+.signOutButton {
+  padding: 0.38rem 0.75rem;
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: none;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  cursor: pointer;
+  font-family: inherit;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.signOutButton:hover {
+  color: var(--ink);
+  border-color: var(--ink-faint);
+}
+
+@media (max-width: 960px) {
+  .logo {
+    max-height: 110px;
+  }
+}
+
+@media (max-width: 640px) {
+  .header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.9rem;
+  }
+
+  .headerLeft {
+    justify-content: center;
+  }
+
+  .logo {
+    max-height: 84px;
+  }
+
+  .navLinks {
+    justify-content: flex-start;
+    gap: 0.4rem;
+  }
+
+  .navLink,
+  .signOutButton {
+    flex: 1 1 auto;
+    justify-content: center;
+    text-align: center;
+    min-height: 44px;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.85rem;
+  }
+
+  .signOutButton {
+    display: inline-flex;
+    align-items: center;
+  }
+}

@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
-import Link from 'next/link'
+import SiteHeader from '../components/SiteHeader'
 import {
   BarChart,
   Bar,
@@ -277,34 +276,7 @@ export default function AnalyticsPage() {
     return (
       <main className={styles.page}>
         <section className={styles.shell}>
-          <header className={styles.header}>
-            <div className={styles.headerLeft}>
-              <Image
-                src="/logo.png"
-                alt="No. 2 Vance Event Venue"
-                width={400}
-                height={180}
-                className={styles.logo}
-                priority
-              />
-            </div>
-            <div className={styles.headerActions}>
-              <div className={styles.navLinks}>
-                <Link href="/" className={styles.navLink}>
-                  Bookings
-                </Link>
-                <Link href="/customers" className={styles.navLink}>
-                  Customers
-                </Link>
-                <Link href="/analytics" className={`${styles.navLink} ${styles.navLinkActive}`}>
-                  Analytics
-                </Link>
-                <Link href="/import" className={styles.navLink}>
-                  Import
-                </Link>
-              </div>
-            </div>
-          </header>
+          <SiteHeader />
           <div className={styles.emptyState}>
             No booking data yet. Add some bookings to see analytics.
           </div>
@@ -316,37 +288,7 @@ export default function AnalyticsPage() {
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <Image
-              src="/logo.png"
-              alt="No. 2 Vance Event Venue"
-              width={400}
-              height={180}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.navLinks}>
-              <Link href="/" className={styles.navLink}>
-                Bookings
-              </Link>
-              <Link href="/customers" className={styles.navLink}>
-                Customers
-              </Link>
-              <Link href="/analytics" className={`${styles.navLink} ${styles.navLinkActive}`}>
-                Analytics
-              </Link>
-              <Link href="/vendors" className={styles.navLink}>
-                Vendors
-              </Link>
-              <Link href="/import" className={styles.navLink}>
-                Import
-              </Link>
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
 
         <div className={styles.pageHeader}>
           <h1 className={styles.pageTitle}>Analytics</h1>

@@ -51,3 +51,12 @@ textarea {
   outline: 3px solid var(--pink);
   outline-offset: 2px;
 }
+
+/* iOS Safari zooms the page when a focused control's font is under 16px */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}

@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Image from 'next/image'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import SiteHeader from './components/SiteHeader'
 import styles from './page.module.css'
 import {
   Customer,
@@ -14,7 +13,6 @@ import {
   loadEvents,
   updateEvent,
 } from './lib/events'
-import { getSupabase } from './lib/supabase'
 
 type ViewMode = 'list' | 'calendar'
 type TimeScope = 'upcoming' | 'past' | 'all'
@@ -62,7 +60,6 @@ export default function Home() {
   const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'confirmed']))
 
-  const router = useRouter()
   const [showMigrateBanner, setShowMigrateBanner] = useState(false)
 
   useEffect(() => {
@@ -70,12 +67,6 @@ export default function Home() {
     loadCustomers().then(setCustomers)
     setShowMigrateBanner(hasLegacyLocalData())
   }, [])
-
-  async function handleSignOut() {
-    await getSupabase().auth.signOut()
-    router.push('/login')
-    router.refresh()
-  }
 
   function getCustomerName(event: EventRecord): string {
     if (event.customerId) {
@@ -297,44 +288,7 @@ export default function Home() {
   return (
     <main className={styles.page}>
       <section className={styles.shell}>
-        <header className={styles.header}>
-          <div className={styles.headerLeft}>
-            <Image
-              src="/logo.png"
-              alt="No. 2 Vance Event Venue"
-              width={400}
-              height={180}
-              className={styles.logo}
-              priority
-            />
-          </div>
-          <div className={styles.headerActions}>
-            <div className={styles.navLinks}>
-              <Link href="/" className={`${styles.navLink} ${styles.navLinkActive}`}>
-                Bookings
-              </Link>
-              <Link href="/customers" className={styles.navLink}>
-                Customers
-              </Link>
-              <Link href="/analytics" className={styles.navLink}>
-                Analytics
-              </Link>
-              <Link href="/vendors" className={styles.navLink}>
-                Vendors
-              </Link>
-              <Link href="/import" className={styles.navLink}>
-                Import
-              </Link>
-              <button
-                type="button"
-                onClick={handleSignOut}
-                className={styles.signOutButton}
-              >
-                Sign out
-              </button>
-            </div>
-          </div>
-        </header>
+        <SiteHeader />
 
         {showMigrateBanner && (
           <div className={styles.migrateBanner}>
@@ -589,9 +543,20 @@ export default function Home() {
                 )}
               </div>
 
-              <div className={styles.detailColumn}>
+              <div
+                className={`${styles.detailColumn} ${
+                  activeEvent ? styles.detailColumnOpen : ''
+                }`}
+              >
                 {activeEvent ? (
                   <aside className={styles.detailPanel}>
+                    <button
+                      type="button"
+                      className={styles.detailClose}
+                      onClick={() => setActiveId(null)}
+                    >
+                      ← Back to list
+                    </button>
                     <div className={styles.detailEventHeader}>
                       <div>
                         <h3 className={styles.detailTitle}>
