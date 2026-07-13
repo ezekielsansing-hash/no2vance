@@ -1,14 +1,14 @@
 .page {
   min-height: 100vh;
   padding: 2.5rem 1.5rem;
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .shell {
   max-width: 1120px;
   margin: 0 auto;
-  background: #fff;
+  background: var(--paper);
   border-radius: 0;
   border: none;
   padding: 0;
@@ -19,9 +19,19 @@
   justify-content: space-between;
   gap: 1.5rem;
   align-items: center;
-  border-bottom: 1px solid #ddd;
+  position: relative;
   padding-bottom: 1.4rem;
   margin-bottom: 1.6rem;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6px;
+  background: repeating-linear-gradient(-45deg, var(--ink) 0 6px, transparent 6px 12px);
 }
 
 .headerLeft {
@@ -48,28 +58,35 @@
 }
 
 .navLink {
-  padding: 0.38rem 0.75rem;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--ink-soft);
   text-decoration: none;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   transition: color 120ms ease, border-color 120ms ease;
 }
 
 .navLink:hover {
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .navLinkActive {
-  color: #1a1a1a;
-  border-color: #1a1a1a;
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
 }
 
 .button {
   border-radius: 0;
   padding: 0.38rem 0.9rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.8rem;
-  border: 1px solid transparent;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
@@ -82,34 +99,40 @@
     color 120ms ease;
 }
 
+.button:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow);
+}
+
 .button:active {
-  opacity: 0.8;
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 var(--ink);
 }
 
 .primaryButton {
-  background: #1a1a1a;
-  color: #fff;
-  border-color: #1a1a1a;
+  background: var(--ink);
+  color: var(--card);
+  border-color: var(--ink);
 }
 
 .primaryButton:hover {
-  background: #333;
-  border-color: #333;
+  background: var(--ink);
+  border-color: var(--ink);
 }
 
 .ghostButton {
-  background: #fff;
-  border-color: #ccc;
-  color: #1a1a1a;
+  background: var(--card);
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .ghostButton:hover {
-  background: #f5f5f5;
+  background: var(--wash);
 }
 
 /* List Panel */
 .listPanel {
-  background: #fff;
+  background: var(--card);
   border-radius: 0;
   border: none;
   padding: 0;
@@ -129,11 +152,12 @@
 }
 
 .panelTitle {
+  font-family: var(--display);
   font-size: 0.9rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .panelControls {
@@ -144,23 +168,23 @@
 .searchInput {
   padding: 0.3rem 0.5rem;
   font-size: 0.8rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #1a1a1a;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
   outline: none;
   min-width: 200px;
 }
 
 .searchInput:focus {
-  border-color: #1a1a1a;
+  border-color: var(--ink);
 }
 
 .emptyState {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--ink-soft);
   padding: 0.75rem;
-  border: 1px dashed #ccc;
-  background: #f9f9f9;
+  border: 2px dashed var(--ink);
+  background: var(--paper);
 }
 
 .listLayout {
@@ -182,48 +206,51 @@
   width: 100%;
   text-align: left;
   border-radius: 0;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 2px solid var(--ink);
+    background: var(--card);
   padding: 0.55rem 0.65rem;
   display: flex;
   flex-direction: column;
   gap: 0.15rem;
   cursor: pointer;
   transition:
-    border-color 120ms ease,
-    background-color 120ms ease;
+    transform 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .customerCard:hover {
-  border-color: #1a1a1a;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .customerCardActive {
-  border-color: #1a1a1a;
-  border-width: 2px;
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow);
 }
 
 .customerName {
+  font-family: var(--display);
   font-size: 0.9rem;
-  font-weight: 560;
-  color: #1a1a1a;
+  font-weight: 600;
+  color: var(--ink);
 }
 
 .customerContact {
-  font-size: 0.78rem;
-  color: #666;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
 }
 
 .customerMeta {
-  font-size: 0.72rem;
-  color: #888;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
 }
 
 /* Detail Panel */
 .detailPanel {
   border-radius: 0;
-  border: 1px solid #ddd;
-  background: #fff;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--card);
   padding: 0.75rem 0.85rem;
   display: flex;
   flex-direction: column;
@@ -238,14 +265,15 @@
 }
 
 .detailTitle {
+  font-family: var(--display);
   font-size: 1rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .detailSubtitle {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .detailActions {
@@ -260,20 +288,20 @@
 }
 
 .detailLabel {
-  font-size: 0.72rem;
-  color: #666;
+  font-size: 0.75rem;
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
 
 .detailValue {
   font-size: 0.85rem;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .detailNotes {
   font-size: 0.83rem;
-  color: #444;
+  color: var(--ink-soft);
   line-height: 1.5;
   white-space: pre-wrap;
 }
@@ -290,57 +318,82 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.4rem 0.5rem;
-  border: 1px solid #eee;
-  background: #fafafa;
+  border: 1px solid var(--ink);
+  background: var(--paper);
   text-decoration: none;
   color: inherit;
   transition: border-color 120ms ease;
 }
 
 .bookingItem:hover {
-  border-color: #1a1a1a;
+  border-color: var(--ink);
 }
 
 .bookingType {
   font-size: 0.83rem;
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .bookingDate {
-  font-size: 0.78rem;
-  color: #666;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
 }
 
 .bookingAmount {
-  font-size: 0.78rem;
-  color: #444;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
 }
 
 .pill {
-  border-radius: 0;
-  border: 1px solid #ccc;
-  padding: 0.08rem 0.45rem;
+  border-radius: 999px;
+  border: 2px solid var(--ink);
+  padding: 0.08rem 0.55rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.72rem;
-  color: #444;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: var(--card);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.pill::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid var(--ink);
+  flex: none;
+}
+
+.pillProspect::before {
+  background: var(--yellow);
+}
+
+.pillConfirmed::before {
+  background: var(--teal);
+  border-radius: 50%;
+}
+
+.pillLost::before {
+  background: var(--red);
+  transform: rotate(45deg);
 }
 
 .pillProspect {
-  border-color: #d97706;
-  color: #d97706;
-  background: #fffbeb;
+  background: var(--yellow-soft);
 }
 
 .pillConfirmed {
-  border-color: #059669;
-  color: #059669;
-  background: #ecfdf5;
+  background: var(--teal-soft);
 }
 
 .pillLost {
-  border-color: #dc2626;
-  color: #dc2626;
-  background: #fef2f2;
+  background: var(--red-soft);
 }
 
 .detailEmpty {
@@ -348,9 +401,9 @@
   align-items: center;
   justify-content: center;
   min-height: 200px;
-  border: 1px dashed #ddd;
-  background: #fafafa;
-  color: #888;
+  border: 2px dashed var(--ink);
+  background: var(--paper);
+  color: var(--ink-faint);
   font-size: 0.85rem;
 }
 
@@ -359,7 +412,7 @@
   display: flex;
   gap: 1rem;
   padding: 0.5rem 0;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--ink);
   margin-top: 0.3rem;
 }
 
@@ -370,14 +423,15 @@
 }
 
 .customerStatValue {
+  font-family: var(--display);
   font-size: 1rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .customerStatLabel {
   font-size: 0.68rem;
-  color: #666;
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }

@@ -1,8 +1,8 @@
 .page {
   min-height: 100vh;
   padding: 2.5rem 1.5rem;
-  background: #f8f8f8;
-  color: #1a1a1a;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .shell {
@@ -15,9 +15,10 @@
   justify-content: space-between;
   gap: 1.5rem;
   align-items: center;
-  background: #fff;
+  background: var(--card);
   padding: 1rem 1.25rem;
-  border: 1px solid #ddd;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 1rem;
 }
 
@@ -45,21 +46,25 @@
 }
 
 .navLink {
-  padding: 0.38rem 0.75rem;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--ink-soft);
   text-decoration: none;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   transition: color 120ms ease, border-color 120ms ease;
 }
 
 .navLink:hover {
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .navLinkActive {
-  color: #1a1a1a;
-  border-color: #1a1a1a;
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Page Header */
@@ -77,50 +82,52 @@
 }
 
 .pageTitle {
+  font-family: var(--display);
   font-size: 1.1rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: #1a1a1a;
+  color: var(--ink);
   margin: 0;
 }
 
 .vendorCount {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .addBtn {
   padding: 0.5rem 1.25rem;
   font-size: 0.85rem;
-  border: 1px solid #1a1a1a;
-  background: #1a1a1a;
-  color: #fff;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--card);
   cursor: pointer;
   transition: background-color 120ms ease;
 }
 
 .addBtn:hover {
-  background: #333;
+  background: var(--ink);
 }
 
 /* Form Section */
 .formSection {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--card);
+  border: 2px solid var(--ink);
   padding: 1.25rem;
   margin-bottom: 1rem;
 }
 
 .formTitle {
+  font-family: var(--display);
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  color: #666;
+  color: var(--ink-soft);
   margin: 0 0 1rem 0;
   padding-bottom: 0.75rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--ink);
 }
 
 .addForm {
@@ -142,9 +149,9 @@
 }
 
 .formLabel {
-  font-size: 0.75rem;
+  font-size: 0.78rem;
   font-weight: 500;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .formInput,
@@ -152,16 +159,16 @@
 .formTextarea {
   padding: 0.5rem 0.65rem;
   font-size: 0.85rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #1a1a1a;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
 }
 
 .formInput:focus,
 .formSelect:focus,
 .formTextarea:focus {
   outline: none;
-  border-color: #1a1a1a;
+  border-color: var(--ink);
 }
 
 .formTextarea {
@@ -175,34 +182,34 @@
   gap: 0.5rem;
   margin-top: 0.5rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--ink);
 }
 
 .cancelBtn {
   padding: 0.5rem 1rem;
   font-size: 0.85rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #666;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink-soft);
   cursor: pointer;
 }
 
 .cancelBtn:hover {
-  background: #f5f5f5;
+  background: var(--wash);
 }
 
 .submitBtn {
   padding: 0.5rem 1.5rem;
   font-size: 0.85rem;
-  border: 1px solid #059669;
-  background: #059669;
-  color: #fff;
+  border: 1px solid var(--teal-ink);
+  background: var(--teal-ink);
+  color: var(--card);
   cursor: pointer;
   transition: background-color 120ms ease;
 }
 
 .submitBtn:hover:not(:disabled) {
-  background: #047857;
+  background: var(--teal-ink);
 }
 
 .submitBtn:disabled {
@@ -220,8 +227,8 @@
 }
 
 .filterLabel {
-  font-size: 0.78rem;
-  color: #666;
+  font-size: 0.82rem;
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -234,36 +241,36 @@
 
 .filterBtn {
   padding: 0.35rem 0.7rem;
-  font-size: 0.78rem;
-  border: 1px solid #ddd;
-  background: #fff;
-  color: #666;
+  font-size: 0.82rem;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink-soft);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .filterBtn:hover {
-  border-color: #1a1a1a;
-  color: #1a1a1a;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .filterBtnActive {
-  background: #1a1a1a;
-  border-color: #1a1a1a;
-  color: #fff;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--card);
 }
 
 /* Empty State */
 .emptyState {
   padding: 4rem 2rem;
-  background: #fff;
-  border: 1px dashed #ccc;
+  background: var(--card);
+  border: 2px dashed var(--ink);
   text-align: center;
 }
 
 .emptyState p {
   font-size: 0.9rem;
-  color: #666;
+  color: var(--ink-soft);
   margin: 0 0 0.5rem 0;
 }
 
@@ -279,20 +286,21 @@
 }
 
 .categorySection {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--card);
+  border: 2px solid var(--ink);
   padding: 1.25rem;
 }
 
 .categoryTitle {
+  font-family: var(--display);
   font-size: 0.9rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  color: #1a1a1a;
+  color: var(--ink);
   margin: 0 0 1rem 0;
   padding-bottom: 0.65rem;
-  border-bottom: 2px solid #1a1a1a;
+  border-bottom: 2px solid var(--ink);
 }
 
 .vendorGrid {
@@ -302,7 +310,7 @@
 }
 
 .vendorCard {
-  border: 1px solid #eee;
+  border: 1px solid var(--ink);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -311,7 +319,7 @@
 }
 
 .vendorCard:hover {
-  border-color: #ccc;
+  border-color: var(--ink);
 }
 
 .vendorHeader {
@@ -322,22 +330,23 @@
 }
 
 .vendorName {
+  font-family: var(--display);
   font-size: 0.95rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
   margin: 0;
 }
 
 .vendorPrice {
-  font-size: 0.78rem;
-  color: #059669;
+  font-size: 0.82rem;
+  color: var(--teal-ink);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .vendorDescription {
   font-size: 0.82rem;
-  color: #555;
+  color: var(--ink-soft);
   margin: 0;
   line-height: 1.5;
 }
@@ -352,16 +361,16 @@
 .vendorDetail {
   display: flex;
   gap: 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 
 .detailLabel {
-  color: #888;
+  color: var(--ink-faint);
   min-width: 55px;
 }
 
 .detailValue {
-  color: #444;
+  color: var(--ink-soft);
 }
 
 .vendorActions {
@@ -369,52 +378,52 @@
   gap: 0.4rem;
   margin-top: 0.5rem;
   padding-top: 0.5rem;
-  border-top: 1px solid #eee;
+  border-top: 1px solid var(--ink);
 }
 
 .vendorLink {
   padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
-  border: 1px solid #1a1a1a;
-  background: #fff;
-  color: #1a1a1a;
+  font-size: 0.78rem;
+  border: 1px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
   text-decoration: none;
   transition: all 120ms ease;
 }
 
 .vendorLink:hover {
-  background: #1a1a1a;
-  color: #fff;
+  background: var(--ink);
+  color: var(--card);
 }
 
 .editBtn {
   padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #666;
+  font-size: 0.78rem;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink-soft);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .editBtn:hover {
-  border-color: #1a1a1a;
-  color: #1a1a1a;
+  border-color: var(--ink);
+  color: var(--ink);
 }
 
 .removeBtn {
   padding: 0.3rem 0.6rem;
-  font-size: 0.75rem;
-  border: 1px solid #dc2626;
-  background: #fff;
-  color: #dc2626;
+  font-size: 0.78rem;
+  border: 1px solid var(--red-ink);
+  background: var(--card);
+  color: var(--red-ink);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .removeBtn:hover {
-  background: #dc2626;
-  color: #fff;
+  background: var(--red-ink);
+  color: var(--card);
 }
 
 @media (max-width: 768px) {

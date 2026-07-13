@@ -1,8 +1,8 @@
 .page {
   min-height: 100vh;
   padding: 2.5rem 1.5rem;
-  background: #f8f8f8;
-  color: #1a1a1a;
+  background: var(--paper);
+  color: var(--ink);
 }
 
 .shell {
@@ -15,9 +15,10 @@
   justify-content: space-between;
   gap: 1.5rem;
   align-items: center;
-  background: #fff;
+  background: var(--card);
   padding: 1rem 1.25rem;
-  border: 1px solid #ddd;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   margin-bottom: 1rem;
 }
 
@@ -45,21 +46,25 @@
 }
 
 .navLink {
-  padding: 0.38rem 0.75rem;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.8rem;
-  color: #666;
+  color: var(--ink-soft);
   text-decoration: none;
-  border: 1px solid transparent;
+  border: 2px solid transparent;
   transition: color 120ms ease, border-color 120ms ease;
 }
 
 .navLink:hover {
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .navLinkActive {
-  color: #1a1a1a;
-  border-color: #1a1a1a;
+  color: var(--ink);
+  border-color: var(--ink);
+  background: var(--yellow);
+  box-shadow: var(--shadow-sm);
 }
 
 .pageHeader {
@@ -72,11 +77,12 @@
 }
 
 .pageTitle {
+  font-family: var(--display);
   font-size: 1.1rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.15em;
-  color: #1a1a1a;
+  color: var(--ink);
   margin: 0;
 }
 
@@ -96,19 +102,19 @@
 .dateInput {
   padding: 0.35rem 0.5rem;
   font-size: 0.8rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #1a1a1a;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
 }
 
 .dateInput:focus {
   outline: none;
-  border-color: #1a1a1a;
+  border-color: var(--ink);
 }
 
 .dateSeparator {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--ink-soft);
 }
 
 .statusFilters {
@@ -118,58 +124,58 @@
 
 .statusBtn {
   padding: 0.35rem 0.65rem;
-  font-size: 0.78rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #666;
+  font-size: 0.82rem;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink-soft);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .statusBtn:hover {
-  border-color: #999;
+  border-color: var(--ink-faint);
 }
 
 .statusBtnActive {
-  color: #fff;
+  color: var(--card);
   border-color: transparent;
 }
 
 .statusBtnProspect {
-  background: #d97706;
-  border-color: #d97706;
+  background: var(--yellow-ink);
+  border-color: var(--yellow-ink);
 }
 
 .statusBtnConfirmed {
-  background: #059669;
-  border-color: #059669;
+  background: var(--teal-ink);
+  border-color: var(--teal-ink);
 }
 
 .statusBtnLost {
-  background: #dc2626;
-  border-color: #dc2626;
+  background: var(--red-ink);
+  border-color: var(--red-ink);
 }
 
 .clearBtn {
   padding: 0.35rem 0.65rem;
-  font-size: 0.78rem;
-  border: 1px solid #ccc;
-  background: #fff;
-  color: #666;
+  font-size: 0.82rem;
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink-soft);
   cursor: pointer;
   transition: all 120ms ease;
 }
 
 .clearBtn:hover {
-  background: #f5f5f5;
+  background: var(--wash);
 }
 
 .emptyState {
   font-size: 0.85rem;
-  color: #666;
+  color: var(--ink-soft);
   padding: 3rem 2rem;
-  border: 1px dashed #ccc;
-  background: #fff;
+  border: 2px dashed var(--ink);
+  background: var(--card);
   text-align: center;
 }
 
@@ -184,8 +190,9 @@
 .metricCard {
   flex: 1;
   min-width: 120px;
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   padding: 1rem;
   display: flex;
   flex-direction: column;
@@ -193,15 +200,16 @@
 }
 
 .metricValue {
+  font-family: var(--display);
   font-size: 1.5rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
   line-height: 1.1;
 }
 
 .metricLabel {
-  font-size: 0.7rem;
-  color: #666;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
@@ -215,17 +223,19 @@
 }
 
 .chartCard {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   padding: 1rem;
 }
 
 .chartTitle {
-  font-size: 0.75rem;
+  font-family: var(--display);
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #666;
+  color: var(--ink-soft);
   margin: 0 0 0.75rem 0;
 }
 
@@ -243,20 +253,22 @@
 }
 
 .card {
-  background: #fff;
-  border: 1px solid #ddd;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
   padding: 1rem;
 }
 
 .cardTitle {
-  font-size: 0.75rem;
+  font-family: var(--display);
+  font-size: 0.78rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #666;
+  color: var(--ink-soft);
   margin: 0 0 0.85rem 0;
   padding-bottom: 0.5rem;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid var(--ink);
 }
 
 /* Bar List (for lead sources) */
@@ -276,24 +288,24 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.8rem;
-  color: #444;
+  color: var(--ink-soft);
 }
 
 .barValue {
   font-weight: 500;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .barTrack {
   height: 6px;
-  background: #eee;
+  background: var(--wash);
   border-radius: 3px;
   overflow: hidden;
 }
 
 .barFill {
   height: 100%;
-  background: #1a1a1a;
+  background: var(--ink);
   border-radius: 3px;
   transition: width 300ms ease;
 }
@@ -310,20 +322,21 @@
   flex-direction: column;
   gap: 0.1rem;
   padding: 0.5rem;
-  background: #f9f9f9;
-  border: 1px solid #eee;
+  background: var(--paper);
+  border: 1px solid var(--ink);
 }
 
 .insightValue {
+  font-family: var(--display);
   font-size: 1.25rem;
   font-weight: 600;
-  color: #1a1a1a;
+  color: var(--ink);
   line-height: 1.1;
 }
 
 .insightLabel {
   font-size: 0.68rem;
-  color: #666;
+  color: var(--ink-soft);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -340,7 +353,7 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.4rem 0;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--wash);
 }
 
 .rankItem:last-child {
@@ -353,35 +366,35 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 600;
-  color: #fff;
-  background: #1a1a1a;
+  color: var(--card);
+  background: var(--ink);
   border-radius: 50%;
 }
 
 .rankName {
   flex: 1;
   font-size: 0.82rem;
-  color: #1a1a1a;
+  color: var(--ink);
 }
 
 .rankValue {
   font-size: 0.8rem;
   font-weight: 500;
-  color: #444;
+  color: var(--ink-soft);
 }
 
 .emptyText {
   font-size: 0.82rem;
-  color: #888;
+  color: var(--ink-faint);
   margin: 0;
 }
 
 /* Lost Card */
 .lostCard {
-  background: #fef2f2;
-  border: 1px solid #fca5a5;
+  background: var(--red-soft);
+  border: 1px solid var(--red);
   padding: 1rem 1.25rem;
 }
 
@@ -393,22 +406,24 @@
 }
 
 .lostTitle {
+  font-family: var(--display);
   font-size: 0.85rem;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--red-ink);
   margin: 0 0 0.25rem 0;
 }
 
 .lostDescription {
   font-size: 0.8rem;
-  color: #991b1b;
+  color: var(--red-ink);
   margin: 0;
 }
 
 .lostValue {
+  font-family: var(--display);
   font-size: 1.5rem;
   font-weight: 600;
-  color: #dc2626;
+  color: var(--red-ink);
 }
 
 @media (max-width: 900px) {

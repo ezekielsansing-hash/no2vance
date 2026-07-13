@@ -6,7 +6,48 @@
   padding: 0;
 }
 
+:root {
+  /* Memphis token layer — single source of truth for the app's skin */
+  --paper: #fffcf4;
+  --card: #ffffff;
+  --wash: #f7f1e3;
+  --ink: #17151a;
+  --ink-soft: #5c5560;
+  --ink-faint: #8e8794;
+
+  --yellow: #ffc921;
+  --yellow-soft: #fff3cc;
+  --yellow-ink: #8a6400;
+  --teal: #00a8a8;
+  --teal-soft: #d9f3f1;
+  --teal-ink: #00706f;
+  --pink: #f4508c;
+  --red: #ff5a3c;
+  --red-soft: #ffe4dd;
+  --red-ink: #c22f14;
+
+  --shadow: 4px 4px 0 var(--ink);
+  --shadow-sm: 3px 3px 0 var(--ink);
+
+  --display: var(--font-jost), 'Futura', 'Century Gothic', 'Trebuchet MS', sans-serif;
+  --body: 'Avenir Next', 'Avenir', system-ui, -apple-system, sans-serif;
+}
+
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--body);
   line-height: 1.6;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--pink);
+  outline-offset: 2px;
 }

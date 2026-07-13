@@ -213,7 +213,7 @@ export default function CustomersPage() {
                       <button
                         type="button"
                         className={`${styles.button} ${styles.ghostButton}`}
-                        style={{ color: '#dc2626', borderColor: '#dc2626' }}
+                        style={{ color: '#c22f14', borderColor: '#17151a' }}
                         onClick={() => handleDelete(activeCustomer.id)}
                       >
                         Delete

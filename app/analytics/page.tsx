@@ -23,11 +23,11 @@ import {
   loadEvents,
 } from '../lib/events'
 
-const COLORS = ['#1a1a1a', '#666', '#999', '#ccc', '#059669', '#d97706', '#dc2626']
+const COLORS = ['#17151a', '#00a8a8', '#ffc921', '#f4508c', '#ff5a3c', '#5c5560', '#8e8794']
 const STATUS_COLORS: Record<string, string> = {
-  confirmed: '#059669',
-  prospect: '#d97706',
-  lost: '#dc2626',
+  confirmed: '#00a8a8',
+  prospect: '#ffc921',
+  lost: '#ff5a3c',
 }
 
 export default function AnalyticsPage() {
@@ -457,9 +457,9 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
                       <Tooltip
-                        contentStyle={{ fontSize: 12, border: '1px solid #ddd' }}
+                        contentStyle={{ fontSize: 12, border: '2px solid #17151a' }}
                       />
-                      <Bar dataKey="bookings" fill="#1a1a1a" radius={[2, 2, 0, 0]} name="Bookings" />
+                      <Bar dataKey="bookings" fill="#17151a" radius={[0, 0, 0, 0]} name="Bookings" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -474,10 +474,10 @@ export default function AnalyticsPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                       <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
                       <Tooltip
-                        contentStyle={{ fontSize: 12, border: '1px solid #ddd' }}
+                        contentStyle={{ fontSize: 12, border: '2px solid #17151a' }}
                         formatter={(value) => `$${Number(value).toLocaleString()}`}
                       />
-                      <Bar dataKey="revenue" fill="#059669" radius={[2, 2, 0, 0]} name="Revenue" />
+                      <Bar dataKey="revenue" fill="#00a8a8" radius={[0, 0, 0, 0]} name="Revenue" />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -505,7 +505,7 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ fontSize: 12, border: '1px solid #ddd' }}
+                        contentStyle={{ fontSize: 12, border: '2px solid #17151a' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -531,7 +531,7 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ fontSize: 12, border: '1px solid #ddd' }}
+                        contentStyle={{ fontSize: 12, border: '2px solid #17151a' }}
                       />
                       <Legend
                         layout="vertical"
