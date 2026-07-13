@@ -17,7 +17,7 @@ import {
 import { getSupabase } from './lib/supabase'
 
 type ViewMode = 'list' | 'calendar'
-type SortOrder = 'asc' | 'desc'
+type TimeScope = 'upcoming' | 'past' | 'all'
 
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '')
@@ -56,8 +56,8 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<ViewMode>('list')
   const [calendarDate, setCalendarDate] = useState(() => new Date())
-  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
-  const [hidePast, setHidePast] = useState(true)
+  const [scope, setScope] = useState<TimeScope>('upcoming')
+  const [rangeOpen, setRangeOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'confirmed']))
@@ -101,24 +101,30 @@ export default function Home() {
     return `${year}-${month}-${day}`
   }, [])
 
+  const rangeActive = Boolean(dateFrom || dateTo)
+
   const sortedEvents = useMemo(() => {
     let filtered = events
 
     // Status filter
     filtered = filtered.filter((e) => statusFilter.has(e.status))
 
-    // Date filters
-    if (dateFrom || dateTo) {
+    // A custom date range overrides the time scope
+    if (rangeActive) {
       filtered = filtered.filter((e) => {
         if (!e.eventDate) return false
         const eventDate = e.eventDate.slice(0, 10)
         return (!dateFrom || eventDate >= dateFrom) &&
                (!dateTo || eventDate <= dateTo)
       })
-    } else if (hidePast) {
+    } else if (scope === 'upcoming') {
       filtered = filtered.filter((e) => !e.eventDate || e.eventDate >= todayStr)
+    } else if (scope === 'past') {
+      filtered = filtered.filter((e) => e.eventDate && e.eventDate < todayStr)
     }
 
+    // Sort is decided by scope: upcoming/all soonest-first, past most-recent-first
+    const desc = scope === 'past' && !rangeActive
     return [...filtered].sort((a, b) => {
       const dateA = a.eventDate || ''
       const dateB = b.eventDate || ''
@@ -126,16 +132,16 @@ export default function Home() {
       if (!dateA) return 1
       if (!dateB) return -1
       const cmp = dateA.localeCompare(dateB)
-      return sortOrder === 'asc' ? cmp : -cmp
+      return desc ? -cmp : cmp
     })
-  }, [events, sortOrder, hidePast, todayStr, dateFrom, dateTo, statusFilter])
+  }, [events, scope, todayStr, dateFrom, dateTo, rangeActive, statusFilter])
 
-  const pastEventCount = useMemo(() => {
-    return events.filter((e) =>
-      e.eventDate &&
-      e.eventDate < todayStr &&
-      statusFilter.has(e.status)
+  const scopeCounts = useMemo(() => {
+    const byStatus = events.filter((e) => statusFilter.has(e.status))
+    const past = byStatus.filter(
+      (e) => e.eventDate && e.eventDate < todayStr,
     ).length
+    return { past, upcoming: byStatus.length - past, all: byStatus.length }
   }, [events, todayStr, statusFilter])
 
 
@@ -171,17 +177,10 @@ export default function Home() {
     )
   }
 
-  function handleDateFromChange(date: string) {
-    setDateFrom(date)
-    if (date) {
-      const parsed = new Date(date + 'T00:00:00')
-      setCalendarDate(parsed)
-    }
-  }
-
   function clearDateFilter() {
     setDateFrom('')
     setDateTo('')
+    setRangeOpen(false)
   }
 
   async function handleConvert(id: string) {
@@ -371,91 +370,110 @@ export default function Home() {
             <div className={styles.listLayout}>
               <div className={styles.listColumn}>
                 <div className={styles.listFilters}>
-                  <div className={styles.viewToggle}>
-                    <button
-                      type="button"
-                      className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
-                      onClick={() => setViewMode('list')}
-                    >
-                      List
-                    </button>
-                    <button
-                      type="button"
-                      className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
-                      onClick={() => setViewMode('calendar')}
-                    >
-                      Calendar
-                    </button>
-                  </div>
-                  <div className={styles.statusFilterGroup}>
-                    {(['prospect', 'confirmed', 'lost'] as const).map((status) => (
-                      <button
-                        key={status}
-                        type="button"
-                        className={`${styles.statusFilterBtn} ${
-                          statusFilter.has(status) ? styles.statusFilterBtnActive : ''
-                        } ${statusFilter.has(status) && status === 'prospect' ? styles.statusFilterBtnProspect : ''
-                        } ${statusFilter.has(status) && status === 'confirmed' ? styles.statusFilterBtnConfirmed : ''
-                        } ${statusFilter.has(status) && status === 'lost' ? styles.statusFilterBtnLost : ''}`}
-                        onClick={() => {
-                          setStatusFilter((prev) => {
-                            const next = new Set(prev)
-                            if (next.has(status)) {
-                              next.delete(status)
-                            } else {
-                              next.add(status)
-                            }
-                            return next
-                          })
-                        }}
-                      >
-                        {status === 'prospect' ? 'Prospect' : status === 'confirmed' ? 'Confirmed' : 'Lost'}
-                      </button>
-                    ))}
-                  </div>
-                  <div className={styles.dateFilters}>
-                    <input
-                      type="date"
-                      className={styles.dateFilter}
-                      value={dateFrom}
-                      onChange={(e) => handleDateFromChange(e.target.value)}
-                      title="From date"
-                    />
-                    <span className={styles.dateRangeSeparator}>to</span>
-                    <input
-                      type="date"
-                      className={styles.dateFilter}
-                      value={dateTo}
-                      onChange={(e) => setDateTo(e.target.value)}
-                      title="To date"
-                    />
-                    {(dateFrom || dateTo) && (
+                  <div className={styles.toolbarRow}>
+                    <span className={styles.toolLabel}>View</span>
+                    <div className={styles.viewToggle}>
                       <button
                         type="button"
-                        className={styles.filterBtn}
-                        onClick={clearDateFilter}
+                        className={`${styles.viewToggleBtn} ${viewMode === 'list' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => setViewMode('list')}
                       >
-                        Clear
+                        List
                       </button>
+                      <button
+                        type="button"
+                        className={`${styles.viewToggleBtn} ${viewMode === 'calendar' ? styles.viewToggleBtnActive : ''}`}
+                        onClick={() => setViewMode('calendar')}
+                      >
+                        Calendar
+                      </button>
+                    </div>
+                    {viewMode === 'list' && (
+                      <>
+                        <span className={styles.toolLabel}>Show</span>
+                        <div
+                          className={`${styles.viewToggle} ${rangeActive ? styles.segDisabled : ''}`}
+                          role="group"
+                          aria-label="Time scope"
+                        >
+                          {(['upcoming', 'past', 'all'] as const).map((s) => (
+                            <button
+                              key={s}
+                              type="button"
+                              className={`${styles.viewToggleBtn} ${scope === s ? styles.viewToggleBtnActive : ''}`}
+                              onClick={() => setScope(s)}
+                            >
+                              {s === 'upcoming' ? 'Upcoming' : s === 'past' ? 'Past' : 'All'}
+                              <span className={styles.segCount}>{scopeCounts[s]}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </>
                     )}
                   </div>
-                  <div className={styles.listControls}>
-                    {!dateFrom && !dateTo && pastEventCount > 0 && (
-                      <button
-                        type="button"
-                        className={`${styles.filterBtn} ${hidePast ? styles.filterBtnActive : ''}`}
-                        onClick={() => setHidePast((prev) => !prev)}
-                      >
-                        {hidePast ? `Show past (${pastEventCount})` : 'Hide past'}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className={styles.sortBtn}
-                      onClick={() => setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
-                    >
-                      Date {sortOrder === 'asc' ? '↑' : '↓'}
-                    </button>
+                  <div className={styles.toolbarRow}>
+                    <span className={styles.toolLabel}>Status</span>
+                    <div className={styles.statusFilterGroup}>
+                      {(['prospect', 'confirmed', 'lost'] as const).map((status) => (
+                        <button
+                          key={status}
+                          type="button"
+                          className={`${styles.statusChip} ${
+                            status === 'prospect' ? styles.chipProspect : status === 'confirmed' ? styles.chipConfirmed : styles.chipLost
+                          } ${statusFilter.has(status) ? styles.statusChipOn : ''}`}
+                          aria-pressed={statusFilter.has(status)}
+                          onClick={() => {
+                            setStatusFilter((prev) => {
+                              const next = new Set(prev)
+                              if (next.has(status)) {
+                                next.delete(status)
+                              } else {
+                                next.add(status)
+                              }
+                              return next
+                            })
+                          }}
+                        >
+                          {status === 'prospect' ? 'Prospect' : status === 'confirmed' ? 'Confirmed' : 'Lost'}
+                        </button>
+                      ))}
+                    </div>
+                    {viewMode === 'list' &&
+                      (rangeOpen || rangeActive ? (
+                        <div className={styles.dateFilters}>
+                          <input
+                            type="date"
+                            className={styles.dateFilter}
+                            value={dateFrom}
+                            onChange={(e) => setDateFrom(e.target.value)}
+                            title="From date"
+                          />
+                          <span className={styles.dateRangeSeparator}>to</span>
+                          <input
+                            type="date"
+                            className={styles.dateFilter}
+                            value={dateTo}
+                            onChange={(e) => setDateTo(e.target.value)}
+                            title="To date"
+                          />
+                          <button
+                            type="button"
+                            className={styles.filterBtn}
+                            onClick={clearDateFilter}
+                            aria-label="Clear date range"
+                          >
+                            ✕ Clear
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className={styles.filterBtn}
+                          onClick={() => setRangeOpen(true)}
+                        >
+                          Date range…
+                        </button>
+                      ))}
                   </div>
                 </div>
                 {viewMode === 'list' ? (

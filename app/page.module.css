@@ -83,48 +83,84 @@
 
 .statusFilterGroup {
   display: flex;
-  gap: 0;
+  gap: 0.4rem;
 }
 
-.statusFilterBtn {
-  padding: 0.25rem 0.6rem;
-  font-size: 0.78rem;
-  border: 2px solid var(--ink);
-  background: var(--card);
+.statusChip {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border: 2px solid var(--ink-faint);
+  border-radius: 999px;
+  padding: 0.14rem 0.6rem;
+  background: transparent;
   color: var(--ink-faint);
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   transition: background-color 120ms ease, color 120ms ease, border-color 120ms ease;
 }
 
-.statusFilterBtn:not(:last-child) {
-  border-right: none;
+.statusChip::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border: 1.5px solid currentColor;
+  flex: none;
 }
 
-.statusFilterBtn:hover:not(.statusFilterBtnActive) {
-  background: var(--wash);
+.chipConfirmed::before {
+  border-radius: 50%;
+}
+
+.chipLost::before {
+  transform: rotate(45deg);
+}
+
+.statusChip:hover {
   color: var(--ink-soft);
+  border-color: var(--ink-soft);
 }
 
-.statusFilterBtnActive {
+.statusChipOn {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.statusChipOn:hover {
+  color: var(--ink);
   border-color: var(--ink);
 }
 
-.statusFilterBtnProspect {
+.statusChipOn::before {
+  border-color: var(--ink);
+}
+
+.statusChipOn.chipProspect {
   background: var(--yellow-soft);
-  color: var(--yellow-ink);
-  border-color: var(--yellow-ink);
 }
 
-.statusFilterBtnConfirmed {
+.statusChipOn.chipProspect::before {
+  background: var(--yellow);
+}
+
+.statusChipOn.chipConfirmed {
   background: var(--teal-soft);
-  color: var(--teal-ink);
-  border-color: var(--teal-ink);
 }
 
-.statusFilterBtnLost {
+.statusChipOn.chipConfirmed::before {
+  background: var(--teal);
+}
+
+.statusChipOn.chipLost {
   background: var(--red-soft);
-  color: var(--red-ink);
-  border-color: var(--red-ink);
+}
+
+.statusChipOn.chipLost::before {
+  background: var(--red);
 }
 
 .dateFilter {
@@ -459,11 +495,40 @@
 
 .listFilters {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  padding: 0.6rem;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.7rem 0.75rem;
   background: var(--paper);
   border: 1px solid var(--ink);
+}
+
+.toolbarRow {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.toolLabel {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-right: -0.3rem;
+}
+
+.segCount {
+  font-weight: 400;
+  opacity: 0.75;
+  font-size: 0.72rem;
+  margin-left: 0.3rem;
+}
+
+.segDisabled {
+  opacity: 0.35;
+  pointer-events: none;
 }
 
 .dateFilters {
@@ -769,16 +834,24 @@
 .viewToggle {
   display: inline-flex;
   border: 2px solid var(--ink);
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
 }
 
 .viewToggleBtn {
   border: none;
   background: var(--card);
   color: var(--ink-soft);
-  padding: 0.38rem 0.75rem;
+  padding: 0.32rem 0.75rem;
+  font-family: var(--display);
+  font-weight: 600;
   font-size: 0.8rem;
   cursor: pointer;
   transition: background-color 120ms ease, color 120ms ease;
+}
+
+.viewToggleBtn + .viewToggleBtn {
+  border-left: 2px solid var(--ink);
 }
 
 .viewToggleBtn:hover {
