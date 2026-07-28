@@ -135,8 +135,7 @@
   max-height: 480px;
   overflow: auto;
   scrollbar-gutter: stable;
-  padding-right: 1rem;
-  padding-left: 0.3rem;
+  padding: 0.3rem 1rem 0.3rem 0.3rem;
 }
 
 .customerCard {
