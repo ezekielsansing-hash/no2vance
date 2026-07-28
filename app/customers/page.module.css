@@ -136,6 +136,7 @@
   overflow: auto;
   scrollbar-gutter: stable;
   padding-right: 1rem;
+  padding-left: 0.3rem;
 }
 
 .customerCard {
