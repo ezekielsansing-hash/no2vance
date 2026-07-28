@@ -561,6 +561,7 @@
   max-height: 420px;
   overflow: auto;
   scrollbar-gutter: stable;
+  padding-right: 1rem;
 }
 
 .eventCard {
