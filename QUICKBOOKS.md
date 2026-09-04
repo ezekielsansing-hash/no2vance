@@ -316,6 +316,11 @@ Confirmed settings: cards deposit in 1 business day, bank transfers in 1–5,
 and the processing limit is $300,000 per 30 days — far above anything a
 deposit will approach.
 
+**Sales tax: not applicable.** Facility rental is not taxable in Tennessee, so
+the deposit invoice correctly carries no tax line and sets no tax fields. If
+that ever changes, the invoice body in `quickbooks/invoice.ts` is where a
+`TxnTaxDetail` would go.
+
 Cost: roughly 2.9% on cards and ~1% on ACH. On a $1,250 deposit that's about
 $36 versus $12.50, so it's worth presenting bank transfer first.
 
