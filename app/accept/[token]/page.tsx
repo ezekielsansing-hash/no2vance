@@ -32,7 +32,16 @@ const BLANK: RenterContractFields = {
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className={styles.page}>
-      <div className={styles.sheet}>{children}</div>
+      <div className={styles.sheet}>
+        {children}
+        {/* This page collects personal information, so the policy covering it
+            should be reachable from the page itself. */}
+        <p className={styles.footer}>
+          <a href="/privacy">Privacy Policy</a>
+          {' · '}
+          <a href="/terms">Terms of Use</a>
+        </p>
+      </div>
     </main>
   )
 }

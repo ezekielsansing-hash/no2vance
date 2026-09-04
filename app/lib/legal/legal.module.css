@@ -1,0 +1,64 @@
+.page {
+  min-height: 100vh;
+  background: var(--wash);
+  padding: 2rem 1rem 4rem;
+  display: flex;
+  justify-content: center;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 44rem;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow);
+  padding: 2rem;
+}
+
+.brand {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 0.78rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.5rem;
+}
+
+.body {
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
+.body h1 {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  line-height: 1.15;
+  margin-bottom: 0.6rem;
+}
+
+.body h2 {
+  font-family: var(--display);
+  font-size: 1.02rem;
+  margin: 1.6rem 0 0.5rem;
+  padding-top: 0.9rem;
+  border-top: 2px solid var(--ink);
+}
+
+.body p {
+  margin-bottom: 0.75rem;
+}
+
+.body ul {
+  margin: 0 0 0.9rem 1.1rem;
+}
+
+.body li {
+  margin-bottom: 0.35rem;
+}
+
+@media (max-width: 640px) {
+  .sheet {
+    padding: 1.25rem;
+  }
+}

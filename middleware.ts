@@ -37,7 +37,11 @@ export async function middleware(request: NextRequest) {
   const isPublic =
     isLoginPage ||
     pathname.startsWith('/accept/') ||
-    pathname.startsWith('/api/accept/')
+    pathname.startsWith('/api/accept/') ||
+    // Intuit requires these to be publicly reachable before issuing
+    // production keys, and a privacy policy nobody can read is useless.
+    pathname === '/terms' ||
+    pathname === '/privacy'
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

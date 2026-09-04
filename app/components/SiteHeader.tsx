@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/analytics', label: 'Analytics' },
   { href: '/vendors', label: 'Vendors' },
   { href: '/import', label: 'Import' },
+  { href: '/settings', label: 'Settings' },
 ]
 
 export default function SiteHeader() {

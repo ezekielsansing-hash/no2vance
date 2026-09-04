@@ -309,8 +309,33 @@ the invoice is already in QuickBooks. Simplest rule is that editing the
 deposit updates the existing invoice; the alternative is voiding and
 reissuing. Worth deciding once you see how often it actually happens.
 
-Cost: QuickBooks Payments takes roughly 2.9% on cards and ~1% on ACH. On
-deposits your size that's real money — offering ACH prominently is worth it.
+**QuickBooks Payments is already active** on the company — approved merchant
+account, card and bank transfer both enabled, deposits going to Truist. So
+there is no second application to wait on, and the Section 3 wording (card,
+debit, ACH, or check) describes what the invoice will actually offer.
+
+Confirmed settings: cards deposit in 1 business day, bank transfers in 1–5,
+and the processing limit is $300,000 per 30 days — far above anything a
+deposit will approach.
+
+Cost: roughly 2.9% on cards and ~1% on ACH. On a $1,250 deposit that's about
+$36 versus $12.50, so it's worth presenting bank transfer first.
+
+One consequence of ACH's 1–5 day settlement: the payment webhook fires when
+the customer pays, not when the money lands. That's the right trigger — they
+have paid and the transfer is in flight — but it means a booking can flip to
+Confirmed a few days before the deposit appears in the Truist account. Worth
+knowing before that gap looks like a bug.
+
+**Redirect URIs to register** on the Intuit app's settings page:
+
+- `http://localhost:3000/api/quickbooks/callback` (development)
+- `https://book.no2vance.com/api/quickbooks/callback` (production)
+
+The custom domain is also what contract links should use. The Copy Link button
+builds the URL from whatever origin the app is open at, so working from
+`book.no2vance.com` rather than the vercel.app address is what puts the good
+domain in front of customers.
 
 ---
 

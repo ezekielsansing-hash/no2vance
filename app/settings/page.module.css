@@ -1,0 +1,124 @@
+.page {
+  min-height: 100vh;
+  background: var(--paper);
+}
+
+.main {
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1.5rem 1.25rem 4rem;
+}
+
+.title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.banner {
+  border: 2px solid var(--ink);
+  background: var(--wash);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.86rem;
+  margin-bottom: 1rem;
+}
+
+.bannerGood {
+  background: var(--teal-soft);
+  color: var(--teal-ink);
+}
+
+.bannerBad {
+  background: var(--red-soft);
+  color: var(--red-ink);
+}
+
+.card {
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow);
+  background: var(--card);
+  padding: 1.25rem 1.4rem;
+}
+
+.cardTitle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.6rem;
+}
+
+.body {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  margin-bottom: 1rem;
+}
+
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.8rem;
+  border: 2px solid var(--ink);
+  background: var(--wash);
+  padding: 0.85rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.label {
+  font-family: var(--display);
+  font-size: 0.68rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.value {
+  font-weight: 600;
+  font-size: 0.9rem;
+  word-break: break-all;
+}
+
+.warning {
+  border: 2px solid var(--ink);
+  background: var(--yellow-soft);
+  color: var(--yellow-ink);
+  padding: 0.6rem 0.9rem;
+  font-size: 0.84rem;
+  margin-bottom: 1rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.button {
+  display: inline-block;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.buttonGhost {
+  border: 2px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}

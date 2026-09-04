@@ -278,3 +278,16 @@
     max-height: 24rem;
   }
 }
+
+.footer {
+  margin-top: 1.75rem;
+  padding-top: 1rem;
+  border-top: 2px solid var(--ink);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.footer a {
+  color: var(--ink-soft);
+}
