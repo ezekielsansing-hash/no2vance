@@ -1111,3 +1111,10 @@
   font-size: 0.74rem;
   color: var(--ink-soft);
 }
+
+.contractIssue {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  color: var(--red-ink);
+}

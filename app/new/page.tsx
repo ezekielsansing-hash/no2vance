@@ -26,6 +26,7 @@ import {
   formatBalanceDue,
   formatCurrencyInput,
 } from '../lib/money'
+import { formatPhoneNumber, isValidPhone } from '../lib/phone'
 
 export default function NewBookingPage() {
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM)
@@ -117,18 +118,6 @@ export default function NewBookingPage() {
     const deposit = formatCurrencyInput(raw)
     setDepositTouched(deposit !== '')
     handleChange('depositAmount', deposit)
-  }
-
-  function isValidPhone(value: string): boolean {
-    const digits = value.replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15
-  }
-
-  function formatPhoneNumber(value: string): string {
-    const digits = value.replace(/\D/g, '')
-    if (digits.length <= 3) return digits
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
   }
 
   function validate(): boolean {

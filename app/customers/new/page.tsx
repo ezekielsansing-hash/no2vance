@@ -5,13 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
 import { Customer, insertCustomer } from '../../lib/events'
-
-function formatPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, '')
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-}
+import { formatPhoneNumber, isValidPhone } from '../../lib/phone'
 
 export default function NewCustomerPage() {
   const router = useRouter()
@@ -20,11 +14,6 @@ export default function NewCustomerPage() {
   const [email, setEmail] = useState('')
   const [notes, setNotes] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
-
-  function isValidPhone(value: string): boolean {
-    const digits = value.replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15
-  }
 
   function validate(): boolean {
     const nextErrors: Record<string, string> = {}

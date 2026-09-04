@@ -1,4 +1,5 @@
 import type { BookingContractFields, Requirements } from './contract'
+import { MAX_OCCUPANCY } from './contract'
 import { formatCurrency } from './money'
 import type { EventRecord } from './events'
 import { getSupabase } from './supabase'
@@ -115,6 +116,41 @@ export function missingForLink(event: EventRecord): string[] {
     const value = event[key]
     return typeof value !== 'string' || value.trim() === ''
   }).map(({ label }) => label)
+}
+
+/** "17:00" -> minutes since midnight, or null if it isn't a time. */
+function minutesOfDay(value: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(value.trim())
+  if (!m) return null
+  const h = parseInt(m[1], 10)
+  if (h > 23) return null
+  return h * 60 + parseInt(m[2], 10)
+}
+
+/**
+ * Contradictions that would produce a nonsensical agreement even though every
+ * required field is filled in. Separate from missingForLink because the field
+ * isn't missing — it's wrong.
+ */
+export function contractProblems(event: EventRecord): string[] {
+  const problems: string[] = []
+
+  const end = minutesOfDay(event.eventTimeEnd)
+  const exit = minutesOfDay(event.exitTime)
+  if (end !== null && exit !== null && exit <= end) {
+    problems.push(
+      'Contracted exit time must be after the event ends — overtime is charged from it',
+    )
+  }
+
+  const guests = parseInt((event.estimatedGuestCount || '').replace(/[^\d]/g, ''), 10)
+  if (!Number.isNaN(guests) && guests > MAX_OCCUPANCY) {
+    problems.push(
+      `Guest count of ${guests} exceeds the maximum occupancy of ${MAX_OCCUPANCY}, which the agreement states is strictly enforced`,
+    )
+  }
+
+  return problems
 }
 
 // ---------------------------------------------------------------------------

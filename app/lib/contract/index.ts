@@ -17,6 +17,14 @@ export const CONTRACT_TEXT: Record<string, string> = {
  * rather than on the booking — but they are versioned along with the text,
  * because changing one changes what a renter is agreeing to.
  */
+/**
+ * Fire-code occupancy limit. Stated twice in the agreement (Sections 1 and 5)
+ * as a hard limit that will be strictly enforced, so a booking above it would
+ * produce a contract that contradicts itself. Must match the number written
+ * into the contract text.
+ */
+export const MAX_OCCUPANCY = 75
+
 export const VENUE_TERMS = {
   returnedCheckFee: '$100',
   overtimeRate: '$100',

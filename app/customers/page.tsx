@@ -14,13 +14,7 @@ import {
   STATUS_PILL_CLASS,
 } from '../lib/events'
 import { formatCurrency, parseAmount } from '../lib/money'
-
-function formatPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, '')
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-}
+import { formatPhoneNumber } from '../lib/phone'
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''

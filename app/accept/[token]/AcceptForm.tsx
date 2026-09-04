@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { formatPhoneNumber } from '../../lib/phone'
 import styles from './accept.module.css'
 
 type Field = { key: string; label: string; required: boolean; type?: string }
@@ -81,7 +82,16 @@ export default function AcceptForm({
                 type={field.type ?? 'text'}
                 value={values[field.key] ?? ''}
                 onChange={(e) =>
-                  setValues((prev) => ({ ...prev, [field.key]: e.target.value }))
+                  setValues((prev) => ({
+                    ...prev,
+                    // Phone fields go straight into the signed contract, so
+                    // format them the way the rest of the app does rather than
+                    // storing whatever was typed.
+                    [field.key]:
+                      field.type === 'tel'
+                        ? formatPhoneNumber(e.target.value)
+                        : e.target.value,
+                  }))
                 }
               />
             </label>

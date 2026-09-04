@@ -20,21 +20,16 @@ import {
 } from './lib/events'
 import { formatBalanceDue, formatCurrency } from './lib/money'
 import {
+  contractProblems,
   createBookingLink,
   loadLinkStatus,
   missingForLink,
   type BookingLink,
 } from './lib/links'
+import { formatPhoneNumber } from './lib/phone'
 
 type ViewMode = 'list' | 'calendar'
 type TimeScope = 'upcoming' | 'past' | 'all'
-
-function formatPhoneNumber(value: string): string {
-  const digits = value.replace(/\D/g, '')
-  if (digits.length <= 3) return digits
-  if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-}
 
 function formatDate(dateStr: string): string {
   if (!dateStr) return ''
@@ -173,6 +168,9 @@ export default function Home() {
   }, [activeId])
 
   const missingForContract = activeEvent ? missingForLink(activeEvent) : []
+  const contractIssues = activeEvent ? contractProblems(activeEvent) : []
+  const contractBlocked =
+    missingForContract.length > 0 || contractIssues.length > 0
 
   async function handleContractLink() {
     if (!activeEvent) return
@@ -737,11 +735,11 @@ export default function Home() {
                         <button
                           type="button"
                           className={styles.contractLinkButton}
-                          disabled={missingForContract.length > 0 || linkBusy}
+                          disabled={contractBlocked || linkBusy}
                           title={
                             missingForContract.length > 0
                               ? `Fill in first: ${missingForContract.join(', ')}`
-                              : undefined
+                              : contractIssues[0]
                           }
                           onClick={handleContractLink}
                         >
@@ -767,6 +765,11 @@ export default function Home() {
                             Needs: {missingForContract.join(', ')}
                           </span>
                         )}
+                        {contractIssues.map((issue) => (
+                          <span key={issue} className={styles.contractIssue}>
+                            {issue}
+                          </span>
+                        ))}
                         {activeEvent.contractLink && (
                           <a
                             className={styles.contractNote}

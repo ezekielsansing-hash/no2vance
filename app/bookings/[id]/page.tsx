@@ -27,6 +27,7 @@ import {
   type Requirements,
 } from '../../lib/contract'
 import {
+  contractProblems,
   createBookingLink,
   loadLinkStatus,
   missingForLink,
@@ -38,6 +39,7 @@ import {
   formatCurrency,
   formatCurrencyInput,
 } from '../../lib/money'
+import { formatPhoneNumber, isValidPhone } from '../../lib/phone'
 
 export default function EditBookingPage() {
   const params = useParams()
@@ -77,6 +79,7 @@ export default function EditBookingPage() {
   // the database, so unsaved edits shouldn't make the button look ready.
   const savedEvent = existingEvents.find((e) => e.id === id)
   const missingFields = savedEvent ? missingForLink(savedEvent) : []
+  const contractIssues = savedEvent ? contractProblems(savedEvent) : []
 
   function setRequirement(
     key: RequirementKey,
@@ -226,18 +229,6 @@ export default function EditBookingPage() {
     const deposit = formatCurrencyInput(raw)
     setDepositTouched(deposit !== '')
     handleChange('depositAmount', deposit)
-  }
-
-  function isValidPhone(value: string): boolean {
-    const digits = value.replace(/\D/g, '')
-    return digits.length >= 10 && digits.length <= 15
-  }
-
-  function formatPhoneNumber(value: string): string {
-    const digits = value.replace(/\D/g, '')
-    if (digits.length <= 3) return digits
-    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
-    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
   }
 
   function validate(): boolean {
@@ -876,11 +867,20 @@ export default function EditBookingPage() {
                         Fill in first: {missingFields.join(', ')}
                       </p>
                     )}
+                    {contractIssues.map((issue) => (
+                      <p key={issue} className={styles.contractMissing}>
+                        {issue}
+                      </p>
+                    ))}
 
                     <button
                       type="button"
                       className={styles.copyLinkButton}
-                      disabled={missingFields.length > 0 || copying}
+                      disabled={
+                        missingFields.length > 0 ||
+                        contractIssues.length > 0 ||
+                        copying
+                      }
                       onClick={handleCopyLink}
                     >
                       {copying
