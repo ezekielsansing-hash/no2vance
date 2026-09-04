@@ -19,6 +19,12 @@ import {
   STATUS_PILL_CLASS,
 } from './lib/events'
 import { formatBalanceDue, formatCurrency } from './lib/money'
+import {
+  createBookingLink,
+  loadLinkStatus,
+  missingForLink,
+  type BookingLink,
+} from './lib/links'
 
 type ViewMode = 'list' | 'calendar'
 type TimeScope = 'upcoming' | 'past' | 'all'
@@ -55,6 +61,12 @@ export default function Home() {
   const [rangeOpen, setRangeOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
+  const [contractLink, setContractLink] = useState<{
+    link: BookingLink
+    acceptedAt?: string
+  } | null>(null)
+  const [linkBusy, setLinkBusy] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'pending', 'confirmed']))
 
   const [showMigrateBanner, setShowMigrateBanner] = useState(false)
@@ -144,6 +156,46 @@ export default function Home() {
     () => events.find((e) => e.id === activeId) ?? null,
     [events, activeId],
   )
+
+  // Contract link state follows the selected booking. Cleared first so a
+  // slow fetch can't show the previous booking's link against this one.
+  useEffect(() => {
+    setContractLink(null)
+    setLinkCopied(false)
+    if (!activeId) return
+    let cancelled = false
+    loadLinkStatus(activeId).then((status) => {
+      if (!cancelled) setContractLink(status)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [activeId])
+
+  const missingForContract = activeEvent ? missingForLink(activeEvent) : []
+
+  async function handleContractLink() {
+    if (!activeEvent) return
+    setLinkBusy(true)
+    try {
+      let token = contractLink?.link.token
+      if (!token) {
+        const created = await createBookingLink(activeEvent.id)
+        token = created.token
+        if (created.warning) alert(created.warning)
+        setContractLink(await loadLinkStatus(activeEvent.id))
+      }
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/accept/${token}`,
+      )
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2500)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not create the link')
+    } finally {
+      setLinkBusy(false)
+    }
+  }
 
 
   async function handleDelete(id: string) {
@@ -680,18 +732,50 @@ export default function Home() {
                       <dd>{activeEvent.vendorList || '—'}</dd>
                     </div>
                     <div>
-                      <dt>Contract Link</dt>
+                      <dt>Contract</dt>
                       <dd>
-                        {activeEvent.contractLink ? (
+                        <button
+                          type="button"
+                          className={styles.contractLinkButton}
+                          disabled={missingForContract.length > 0 || linkBusy}
+                          title={
+                            missingForContract.length > 0
+                              ? `Fill in first: ${missingForContract.join(', ')}`
+                              : undefined
+                          }
+                          onClick={handleContractLink}
+                        >
+                          {linkBusy
+                            ? 'Working…'
+                            : linkCopied
+                            ? 'Copied'
+                            : contractLink
+                            ? 'Copy contract link'
+                            : 'Create contract link'}
+                        </button>
+                        {contractLink && (
+                          <span className={styles.contractNote}>
+                            {contractLink.link.paidAt
+                              ? 'Deposit paid'
+                              : contractLink.acceptedAt
+                              ? `Accepted ${formatDate(contractLink.acceptedAt.slice(0, 10))}`
+                              : 'Sent — not yet accepted'}
+                          </span>
+                        )}
+                        {missingForContract.length > 0 && (
+                          <span className={styles.contractNote}>
+                            Needs: {missingForContract.join(', ')}
+                          </span>
+                        )}
+                        {activeEvent.contractLink && (
                           <a
+                            className={styles.contractNote}
                             href={activeEvent.contractLink}
                             target="_blank"
                             rel="noreferrer"
                           >
-                            View Contract
+                            Legacy contract link
                           </a>
-                        ) : (
-                          '—'
                         )}
                       </dd>
                     </div>

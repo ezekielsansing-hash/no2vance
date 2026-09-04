@@ -1084,3 +1084,30 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+.contractLinkButton {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.32rem 0.6rem;
+  cursor: pointer;
+}
+
+.contractLinkButton:disabled {
+  background: var(--ink-faint);
+  border-color: var(--ink-faint);
+  cursor: not-allowed;
+}
+
+.contractNote {
+  display: block;
+  margin-top: 0.3rem;
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+}
