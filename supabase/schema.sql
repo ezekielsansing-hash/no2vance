@@ -1,5 +1,6 @@
 -- no2vance schema
 -- Run this once in the Supabase SQL Editor (Dashboard > SQL Editor > New query > paste > Run).
+-- Then run 002-contract-links.sql in the same way.
 
 create table if not exists customers (
   id text primary key,

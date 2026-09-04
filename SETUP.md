@@ -60,6 +60,42 @@ shared database. It only appears in browsers that have old local data.
 4. Deploy. You'll get a URL like `no2vance.vercel.app` — share it with your
    team. Every push to `main` on GitHub auto-deploys from now on.
 
+## 6. Contract links (one time, when you're ready to send agreements)
+
+The contract acceptance page is opened by customers who have no account here,
+so it can't use the normal signed-in database access. It reads through the
+server with a separate key instead.
+
+1. **Run the migration.** Supabase dashboard → **SQL Editor → New query**,
+   paste the contents of
+   [`supabase/002-contract-links.sql`](supabase/002-contract-links.sql), Run.
+   This adds the contract fields to bookings and creates the two tables that
+   hold links and acceptances. Safe to run twice.
+
+2. **Get the service role key.** Supabase dashboard → **Project Settings →
+   API**. Under "Project API keys" copy the **`service_role`** key — *not* the
+   anon key you used earlier.
+
+   This key bypasses all database security. Never paste it into the app's
+   code, a browser, or anywhere public. It belongs only in the two places
+   below.
+
+3. **Add it locally.** In `.env.local`, add a third line:
+
+   ```
+   SUPABASE_SERVICE_ROLE_KEY=YOUR-SERVICE-ROLE-KEY
+   ```
+
+   Note there is no `NEXT_PUBLIC_` prefix. That prefix is what makes a value
+   visible in the browser, and this one must not be.
+
+4. **Add it to Vercel.** Project → **Settings → Environment Variables** → add
+   `SUPABASE_SERVICE_ROLE_KEY` with the same value, then redeploy.
+
+Once that's done, a booking with its event details, rate, and deposit filled in
+gets a **Create contract link** button in the Contract section. The link works
+for anyone who opens it, so treat it like a private share link.
+
 ## Ongoing: backups
 
 Until you upgrade Supabase to Pro, there are no automatic database backups.

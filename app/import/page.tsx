@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import SiteHeader from '../components/SiteHeader'
 import styles from './page.module.css'
 import {
+  BOOKING_STATUSES,
   BookingStatus,
   Customer,
   EventRecord,
@@ -111,8 +112,10 @@ function validateBookingRow(row: ParsedRow): string[] {
   }
   if (data.status) {
     const status = data.status.toLowerCase().trim()
-    if (!['prospect', 'confirmed', 'lost'].includes(status)) {
-      errors.push('Invalid status (use prospect, confirmed, or lost)')
+    if (!BOOKING_STATUSES.includes(status as BookingStatus)) {
+      errors.push(
+        'Invalid status (use ' + BOOKING_STATUSES.join(', ') + ')',
+      )
     }
   }
 
@@ -387,6 +390,13 @@ export default function ImportPage() {
           vendorList: row.data.vendorList?.trim() || '',
           photoFolder: row.data.photoFolder?.trim() || '',
           postEventNotes: row.data.postEventNotes?.trim() || '',
+          // Contract fields aren't part of the CSV format — they're filled in
+          // on the booking before a contract link is generated.
+          accessTime: '',
+          exitTime: '',
+          additionalItems: '',
+          photographyOptOut: false,
+          requirements: {},
         }
 
         newEvents.push(event)
@@ -599,7 +609,7 @@ export default function ImportPage() {
                   <div className={styles.columnGroup}>
                     <h4 className={styles.columnGroupTitle}>Optional</h4>
                     <ul className={styles.columnList}>
-                      <li><code>status</code> — prospect, confirmed, or lost (defaults to prospect)</li>
+                      <li><code>status</code> — prospect, pending, confirmed, or lost (defaults to prospect); <code>pending</code> means contract sent</li>
                       <li><code>eventType</code> — e.g. Wedding, Birthday, Corporate Event</li>
                       <li><code>eventTimeStart</code> — Start time (HH:MM)</li>
                       <li><code>eventTimeEnd</code> — End time (HH:MM)</li>

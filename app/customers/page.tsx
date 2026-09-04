@@ -10,22 +10,16 @@ import {
   deleteCustomer,
   loadCustomers,
   loadEvents,
+  STATUS_LABELS,
+  STATUS_PILL_CLASS,
 } from '../lib/events'
+import { formatCurrency, parseAmount } from '../lib/money'
 
 function formatPhoneNumber(value: string): string {
   const digits = value.replace(/\D/g, '')
   if (digits.length <= 3) return digits
   if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-}
-
-function formatCurrency(value: string): string {
-  if (!value) return ''
-  if (value.startsWith('$')) return value
-  const digits = value.replace(/[^\d]/g, '')
-  if (!digits) return value
-  const num = parseInt(digits, 10)
-  return '$' + num.toLocaleString('en-US')
 }
 
 function formatDate(dateStr: string): string {
@@ -79,7 +73,7 @@ export default function CustomersPage() {
     if (!activeCustomer) return { totalBookings: 0, totalRevenue: 0, lastBooking: '' }
     const bookings = customerBookings
     const totalRevenue = bookings.reduce((sum, b) => {
-      const amount = parseInt((b.ratePackage || '').replace(/[^\d]/g, '') || '0')
+      const amount = parseAmount(b.ratePackage)
       return sum + amount
     }, 0)
     const lastBooking = bookings[0]?.eventDate || ''
@@ -268,15 +262,9 @@ export default function CustomersPage() {
                                 </span>
                               )}
                               <span
-                                className={`${styles.pill} ${
-                                  booking.status === 'prospect'
-                                    ? styles.pillProspect
-                                    : booking.status === 'lost'
-                                    ? styles.pillLost
-                                    : styles.pillConfirmed
-                                }`}
+                                className={`${styles.pill} ${styles[STATUS_PILL_CLASS[booking.status]]}`}
                               >
-                                {booking.status === 'prospect' ? 'Prospect' : booking.status === 'lost' ? 'Lost' : 'Confirmed'}
+                                {STATUS_LABELS[booking.status]}
                               </span>
                             </div>
                           </Link>

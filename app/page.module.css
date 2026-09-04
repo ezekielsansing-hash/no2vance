@@ -88,6 +88,16 @@
   transform: rotate(45deg);
 }
 
+/* Solid rather than hollow: a clipped triangle can't show a border outline,
+   so it fills with currentColor to stay visible in the unselected state. */
+.chipPending::before {
+  border: none;
+  background: currentColor;
+  width: 9px;
+  height: 9px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
+
 .statusChip:hover {
   color: var(--ink-soft);
   border-color: var(--ink-soft);
@@ -129,6 +139,14 @@
 
 .statusChipOn.chipLost::before {
   background: var(--red);
+}
+
+.statusChipOn.chipPending {
+  background: var(--pink-soft);
+}
+
+.statusChipOn.chipPending::before {
+  background: var(--pink);
 }
 
 .dateFilter {
@@ -682,6 +700,18 @@
 .pillLost::before {
   background: var(--red);
   transform: rotate(45deg);
+}
+
+.pillPending {
+  background: var(--pink-soft);
+}
+
+.pillPending::before {
+  background: var(--pink);
+  border: none;
+  width: 9px;
+  height: 9px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
 }
 
 .pillMuted {

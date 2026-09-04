@@ -18,7 +18,26 @@ import {
   loadEvents,
   saveCustomEventType,
   updateEvent,
+  BOOKING_STATUSES,
+  STATUS_LABELS,
 } from '../../lib/events'
+import {
+  REQUIREMENT_OPTIONS,
+  type RequirementKey,
+  type Requirements,
+} from '../../lib/contract'
+import {
+  createBookingLink,
+  loadLinkStatus,
+  missingForLink,
+  type BookingLink,
+} from '../../lib/links'
+import {
+  defaultDeposit,
+  formatBalanceDue,
+  formatCurrency,
+  formatCurrencyInput,
+} from '../../lib/money'
 
 export default function EditBookingPage() {
   const params = useParams()
@@ -27,6 +46,7 @@ export default function EditBookingPage() {
 
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [depositTouched, setDepositTouched] = useState(true)
   const [loaded, setLoaded] = useState(false)
   const [customEventTypes, setCustomEventTypes] = useState<string[]>([])
   const [showCustomEventType, setShowCustomEventType] = useState(false)
@@ -37,10 +57,53 @@ export default function EditBookingPage() {
   const [logisticsOpen, setLogisticsOpen] = useState(true)
   const [vendorsOpen, setVendorsOpen] = useState(true)
   const [existingEvents, setExistingEvents] = useState<EventRecord[]>([])
+  const [contractOpen, setContractOpen] = useState(false)
+  const [linkStatus, setLinkStatus] = useState<{
+    link: BookingLink
+    acceptedAt?: string
+  } | null>(null)
+  const [copying, setCopying] = useState(false)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     loadCustomers().then(setCustomers)
   }, [])
+
+  useEffect(() => {
+    if (id) loadLinkStatus(id).then(setLinkStatus)
+  }, [id])
+
+  // Checked against the saved booking, not the form: a link freezes what's in
+  // the database, so unsaved edits shouldn't make the button look ready.
+  const savedEvent = existingEvents.find((e) => e.id === id)
+  const missingFields = savedEvent ? missingForLink(savedEvent) : []
+
+  function setRequirement(
+    key: RequirementKey,
+    value: { checked: boolean; value?: string },
+  ) {
+    setForm((prev) => {
+      const next: Requirements = { ...prev.requirements, [key]: value }
+      return { ...prev, requirements: next }
+    })
+  }
+
+  async function handleCopyLink() {
+    if (!savedEvent) return
+    setCopying(true)
+    try {
+      const link = linkStatus?.link ?? (await createBookingLink(savedEvent))
+      if (!linkStatus) setLinkStatus({ link })
+      const url = `${window.location.origin}/accept/${link.token}`
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Could not create the link')
+    } finally {
+      setCopying(false)
+    }
+  }
 
   // Check for existing events on the selected date (excluding current event)
   const eventsOnDate = form.eventDate
@@ -98,6 +161,8 @@ export default function EditBookingPage() {
         rest.ratePackage = formatCurrency(rest.ratePackage)
       }
       setForm(rest)
+      // A saved deposit was already decided; don't let a rate edit overwrite it.
+      setDepositTouched(Boolean(rest.depositAmount))
       // Set selected customer if customerId exists
       if (rest.customerId) {
         setSelectedCustomerId(rest.customerId)
@@ -109,9 +174,9 @@ export default function EditBookingPage() {
         setCustomEventTypeInput(rest.eventType)
       }
       // Set collapsed state based on status (prospects collapsed, confirmed expanded)
-      const isConfirmed = rest.status === 'confirmed'
-      setLogisticsOpen(isConfirmed)
-      setVendorsOpen(isConfirmed)
+      const isActive = rest.status !== 'prospect'
+      setLogisticsOpen(isActive)
+      setVendorsOpen(isActive)
       setLoaded(true)
     }
     load()
@@ -132,6 +197,28 @@ export default function EditBookingPage() {
     })
   }
 
+  // Deposit follows the rate at half until it's typed over. Clearing the field
+  // hands control back to the rate, so there's a way out of an override.
+  function handleRateChange(raw: string) {
+    const rate = formatCurrencyInput(raw)
+    setForm((prev) => ({
+      ...prev,
+      ratePackage: rate,
+      depositAmount: depositTouched ? prev.depositAmount : defaultDeposit(rate),
+    }))
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.ratePackage
+      return next
+    })
+  }
+
+  function handleDepositChange(raw: string) {
+    const deposit = formatCurrencyInput(raw)
+    setDepositTouched(deposit !== '')
+    handleChange('depositAmount', deposit)
+  }
+
   function isValidPhone(value: string): boolean {
     const digits = value.replace(/\D/g, '')
     return digits.length >= 10 && digits.length <= 15
@@ -142,13 +229,6 @@ export default function EditBookingPage() {
     if (digits.length <= 3) return digits
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-  }
-
-  function formatCurrency(value: string): string {
-    const digits = value.replace(/[^\d]/g, '')
-    if (!digits) return ''
-    const num = parseInt(digits, 10)
-    return '$' + num.toLocaleString('en-US')
   }
 
   function validate(): boolean {
@@ -258,16 +338,18 @@ export default function EditBookingPage() {
             <div className={styles.statusSection}>
               <span className={styles.statusLabel}>Status</span>
               <div className={styles.segmented}>
-                {(['prospect', 'confirmed', 'lost'] as BookingStatus[]).map((s) => (
+                {BOOKING_STATUSES.map((s) => (
                   <button
                     key={s}
                     type="button"
                     className={`${styles.segment} ${
                       form.status === s ? styles.segmentActive : ''
-                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''}`}
+                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''} ${
+                      form.status === s && s === 'pending' ? styles.segmentPending : ''
+                    }`}
                     onClick={() => handleChange('status', s)}
                   >
-                    {s === 'prospect' ? 'Prospect' : s === 'confirmed' ? 'Confirmed' : 'Lost'}
+                    {STATUS_LABELS[s]}
                   </button>
                 ))}
               </div>
@@ -481,9 +563,7 @@ export default function EditBookingPage() {
                         className={styles.input}
                         placeholder="$2,500"
                         value={form.ratePackage}
-                        onChange={(e) =>
-                          handleChange('ratePackage', formatCurrency(e.target.value))
-                        }
+                        onChange={(e) => handleRateChange(e.target.value)}
                       />
                     </label>
 
@@ -493,10 +573,13 @@ export default function EditBookingPage() {
                         className={styles.input}
                         placeholder="$500"
                         value={form.depositAmount}
-                        onChange={(e) =>
-                          handleChange('depositAmount', formatCurrency(e.target.value))
-                        }
+                        onChange={(e) => handleDepositChange(e.target.value)}
                       />
+                      {!depositTouched && form.depositAmount && (
+                        <span className={styles.hintText}>
+                          Half the rate — type to override
+                        </span>
+                      )}
                     </label>
                   </div>
 
@@ -504,12 +587,7 @@ export default function EditBookingPage() {
                     <div className={styles.field}>
                       <span className={styles.label}>Balance Due</span>
                       <div className={styles.calculatedField}>
-                        {(() => {
-                          const rate = parseInt(form.ratePackage.replace(/[^\d]/g, '') || '0')
-                          const deposit = parseInt(form.depositAmount.replace(/[^\d]/g, '') || '0')
-                          const balance = rate - deposit
-                          return balance > 0 ? `$${balance.toLocaleString()}` : '—'
-                        })()}
+                        {formatBalanceDue(form.ratePackage, form.depositAmount)}
                       </div>
                     </div>
 
@@ -594,6 +672,38 @@ export default function EditBookingPage() {
 
                   <div className={styles.fieldRow}>
                     <label className={styles.field}>
+                      <span className={styles.label}>Access / Setup Time</span>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={form.accessTime}
+                        onChange={(e) =>
+                          handleChange('accessTime', e.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className={styles.field}>
+                      <span className={styles.label}>
+                        Contracted Exit Time
+                        <span className={styles.required}>*</span>
+                      </span>
+                      <input
+                        type="time"
+                        className={styles.input}
+                        value={form.exitTime}
+                        onChange={(e) =>
+                          handleChange('exitTime', e.target.value)
+                        }
+                      />
+                      <span className={styles.hintText}>
+                        Overtime is charged from this time
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
                       <span className={styles.label}>Setup &amp; Layout</span>
                       <textarea
                         className={`${styles.input} ${styles.textarea}`}
@@ -629,6 +739,137 @@ export default function EditBookingPage() {
                         S = simple, M = moderate, L = high touch
                       </span>
                     </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className={styles.section}>
+              <button
+                type="button"
+                className={styles.sectionHeaderCollapsible}
+                onClick={() => setContractOpen(!contractOpen)}
+              >
+                <div className={styles.sectionHeaderLeft}>
+                  <span className={styles.collapseIcon}>{contractOpen ? '−' : '+'}</span>
+                  <h3 className={styles.sectionTitle}>Contract</h3>
+                </div>
+              </button>
+
+              {contractOpen && (
+                <div className={styles.sectionContent}>
+                  <div className={styles.fieldRow}>
+                    <label className={styles.field}>
+                      <span className={styles.label}>
+                        Additional Items Included (Section 6)
+                      </span>
+                      <input
+                        className={styles.input}
+                        placeholder="Projector, extra linens..."
+                        value={form.additionalItems}
+                        onChange={(e) =>
+                          handleChange('additionalItems', e.target.value)
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <div className={styles.field}>
+                      <span className={styles.label}>
+                        Additional Requirements (Section 14)
+                      </span>
+                      <div className={styles.checkStack}>
+                        {REQUIREMENT_OPTIONS.map((option) => {
+                          const current = form.requirements[option.key]
+                          return (
+                            <div key={option.key} className={styles.checkRow}>
+                              <label className={styles.checkLabel}>
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(current?.checked)}
+                                  onChange={(e) =>
+                                    setRequirement(option.key, {
+                                      checked: e.target.checked,
+                                      value: current?.value,
+                                    })
+                                  }
+                                />
+                                <span>{option.label}</span>
+                              </label>
+                              {option.valueLabel && current?.checked && (
+                                <input
+                                  className={`${styles.input} ${styles.checkValue}`}
+                                  placeholder={option.valueLabel}
+                                  value={current?.value ?? ''}
+                                  onChange={(e) =>
+                                    setRequirement(option.key, {
+                                      checked: true,
+                                      value: e.target.value,
+                                    })
+                                  }
+                                />
+                              )}
+                            </div>
+                          )
+                        })}
+                        <div className={styles.checkRow}>
+                          <label className={styles.checkLabel}>
+                            <input
+                              type="checkbox"
+                              checked={form.photographyOptOut}
+                              onChange={(e) =>
+                                handleChange('photographyOptOut', e.target.checked)
+                              }
+                            />
+                            <span>Renter opts out of promotional photography</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className={styles.contractLinkBox}>
+                    {linkStatus ? (
+                      <>
+                        <p className={styles.contractStatus}>
+                          {linkStatus.acceptedAt
+                            ? `Contract accepted ${new Date(linkStatus.acceptedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}`
+                            : 'Link sent — not yet accepted'}
+                        </p>
+                        <p className={styles.contractHint}>
+                          Terms were frozen when this link was created. Editing
+                          the booking above does not change what the customer
+                          sees — generate a new link for that.
+                        </p>
+                      </>
+                    ) : (
+                      <p className={styles.contractHint}>
+                        Generates a link the customer opens to read the agreement
+                        and accept it.
+                      </p>
+                    )}
+
+                    {missingFields.length > 0 && (
+                      <p className={styles.contractMissing}>
+                        Fill in first: {missingFields.join(', ')}
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      className={styles.copyLinkButton}
+                      disabled={missingFields.length > 0 || copying}
+                      onClick={handleCopyLink}
+                    >
+                      {copying
+                        ? 'Creating…'
+                        : copied
+                        ? 'Copied to clipboard'
+                        : linkStatus
+                        ? 'Copy contract link'
+                        : 'Create contract link'}
+                    </button>
                   </div>
                 </div>
               )}

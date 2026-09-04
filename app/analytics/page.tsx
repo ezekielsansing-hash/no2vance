@@ -21,11 +21,13 @@ import {
   loadCustomers,
   loadEvents,
 } from '../lib/events'
+import { parseAmount } from '../lib/money'
 
 const COLORS = ['#17151a', '#00a8a8', '#ffc921', '#f4508c', '#ff5a3c', '#5c5560', '#8e8794']
 const STATUS_COLORS: Record<string, string> = {
   confirmed: '#00a8a8',
   prospect: '#ffc921',
+  pending: '#f4508c',
   lost: '#ff5a3c',
 }
 
@@ -77,7 +79,7 @@ export default function AnalyticsPage() {
         byMonth[monthKey] = (byMonth[monthKey] || 0) + 1
 
         if (event.status === 'confirmed') {
-          const rate = parseInt((event.ratePackage || '').replace(/[^\d]/g, '') || '0')
+          const rate = parseAmount(event.ratePackage)
           revenueByYear[yearStr] = (revenueByYear[yearStr] || 0) + rate
           revenueByMonth[monthKey] = (revenueByMonth[monthKey] || 0) + rate
         }
@@ -88,16 +90,19 @@ export default function AnalyticsPage() {
     const sortedMonths = Object.keys(byMonth).sort((a, b) => a.localeCompare(b))
 
     const prospects = filteredEvents.filter((e) => e.status === 'prospect').length
+    const pending = filteredEvents.filter((e) => e.status === 'pending').length
     const confirmed = filteredEvents.filter((e) => e.status === 'confirmed').length
     const lost = filteredEvents.filter((e) => e.status === 'lost').length
 
+    // Contract Sent is still in flight — it counts as neither won nor lost
+    // until the deposit lands, so it stays out of the conversion rate.
     const resolved = confirmed + lost
     const conversionRate = resolved > 0 ? Math.round((confirmed / resolved) * 100) : 0
 
     const lostRevenue = filteredEvents
       .filter((e) => e.status === 'lost')
       .reduce((sum, e) => {
-        const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+        const amount = parseAmount(e.ratePackage)
         return sum + amount
       }, 0)
 
@@ -110,24 +115,24 @@ export default function AnalyticsPage() {
 
     const revenueCollected =
       pastConfirmed.reduce((sum, e) => {
-        const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+        const amount = parseAmount(e.ratePackage)
         return sum + amount
       }, 0) +
       futureConfirmed.reduce((sum, e) => {
-        const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
+        const deposit = parseAmount(e.depositAmount)
         return sum + deposit
       }, 0)
 
     const amountDue = futureConfirmed.reduce((sum, e) => {
-      const rate = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
-      const deposit = parseInt((e.depositAmount || '').replace(/[^\d]/g, '') || '0')
+      const rate = parseAmount(e.ratePackage)
+      const deposit = parseAmount(e.depositAmount)
       return sum + (rate - deposit)
     }, 0)
 
     const totalRevenue = filteredEvents
       .filter((e) => e.status === 'confirmed')
       .reduce((sum, e) => {
-        const amount = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+        const amount = parseAmount(e.ratePackage)
         return sum + amount
       }, 0)
 
@@ -162,6 +167,7 @@ export default function AnalyticsPage() {
 
     const statusData = [
       { name: 'Confirmed', value: confirmed, color: STATUS_COLORS.confirmed },
+      { name: 'Contract Sent', value: pending, color: STATUS_COLORS.pending },
       { name: 'Prospect', value: prospects, color: STATUS_COLORS.prospect },
       { name: 'Lost', value: lost, color: STATUS_COLORS.lost },
     ].filter((d) => d.value > 0)
@@ -211,7 +217,7 @@ export default function AnalyticsPage() {
       if (e.customerId) {
         customerBookingCounts[e.customerId] = (customerBookingCounts[e.customerId] || 0) + 1
         if (e.status === 'confirmed') {
-          const rate = parseInt((e.ratePackage || '').replace(/[^\d]/g, '') || '0')
+          const rate = parseAmount(e.ratePackage)
           customerRevenue[e.customerId] = (customerRevenue[e.customerId] || 0) + rate
         }
       }

@@ -1,7 +1,42 @@
 import { getSupabase } from './supabase'
+import type { Requirements } from './contract'
 
 export type EffortLevel = 'S' | 'M' | 'L'
-export type BookingStatus = 'prospect' | 'confirmed' | 'lost'
+export type BookingStatus = 'prospect' | 'pending' | 'confirmed' | 'lost'
+
+/** Pipeline order. Drives the status pickers and the list filter chips. */
+export const BOOKING_STATUSES: BookingStatus[] = [
+  'prospect',
+  'pending',
+  'confirmed',
+  'lost',
+]
+
+export const STATUS_LABELS: Record<BookingStatus, string> = {
+  prospect: 'Prospect',
+  pending: 'Contract Sent',
+  confirmed: 'Confirmed',
+  lost: 'Lost',
+}
+
+/**
+ * CSS-module class keys per status, looked up rather than written as inline
+ * ternaries. The ternaries these replace all ended in `: 'Confirmed'`, so a
+ * new status silently rendered as Confirmed instead of failing loudly.
+ */
+export const STATUS_PILL_CLASS: Record<BookingStatus, string> = {
+  prospect: 'pillProspect',
+  pending: 'pillPending',
+  confirmed: 'pillConfirmed',
+  lost: 'pillLost',
+}
+
+export const STATUS_CHIP_CLASS: Record<BookingStatus, string> = {
+  prospect: 'chipProspect',
+  pending: 'chipPending',
+  confirmed: 'chipConfirmed',
+  lost: 'chipLost',
+}
 
 export type Customer = {
   id: string
@@ -34,6 +69,14 @@ export type EventFormState = {
   vendorList: string
   photoFolder: string
   postEventNotes: string
+  // Needed by the rental agreement. The renter's own details (address, cell,
+  // on-site party) are collected on the acceptance page instead, since they're
+  // the customer's to supply rather than ours.
+  accessTime: string
+  exitTime: string
+  additionalItems: string
+  photographyOptOut: boolean
+  requirements: Requirements
 }
 
 export type EventRecord = EventFormState & {
@@ -76,6 +119,11 @@ export const EMPTY_FORM: EventFormState = {
   vendorList: '',
   photoFolder: '',
   postEventNotes: '',
+  accessTime: '',
+  exitTime: '',
+  additionalItems: '',
+  photographyOptOut: false,
+  requirements: {},
 }
 
 export const DEFAULT_EVENT_TYPES = [
@@ -118,6 +166,11 @@ function rowToEvent(row: EventRow): EventRecord {
     vendorList: (row.vendor_list as string) || '',
     photoFolder: (row.photo_folder as string) || '',
     postEventNotes: (row.post_event_notes as string) || '',
+    accessTime: (row.access_time as string) || '',
+    exitTime: (row.exit_time as string) || '',
+    additionalItems: (row.additional_items as string) || '',
+    photographyOptOut: Boolean(row.photography_opt_out),
+    requirements: (row.requirements as Requirements) || {},
     createdAt: (row.created_at as string) || '',
     convertedAt: (row.converted_at as string) || undefined,
   }
@@ -147,6 +200,11 @@ function eventToRow(event: EventRecord): EventRow {
     vendor_list: event.vendorList,
     photo_folder: event.photoFolder,
     post_event_notes: event.postEventNotes,
+    access_time: event.accessTime,
+    exit_time: event.exitTime,
+    additional_items: event.additionalItems,
+    photography_opt_out: event.photographyOptOut,
+    requirements: event.requirements ?? {},
     created_at: event.createdAt || new Date().toISOString(),
     converted_at: event.convertedAt ?? null,
   }

@@ -29,9 +29,17 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  const isLoginPage = request.nextUrl.pathname === '/login'
+  const { pathname } = request.nextUrl
+  const isLoginPage = pathname === '/login'
+  // The contract acceptance page and its POST endpoint are opened by customers,
+  // who never have an account here. They authenticate with the link token
+  // instead, and read through the service-role client rather than RLS.
+  const isPublic =
+    isLoginPage ||
+    pathname.startsWith('/accept/') ||
+    pathname.startsWith('/api/accept/')
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)

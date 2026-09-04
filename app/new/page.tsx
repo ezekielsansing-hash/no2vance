@@ -18,11 +18,19 @@ import {
   loadCustomEventTypes,
   loadEvents,
   saveCustomEventType,
+  BOOKING_STATUSES,
+  STATUS_LABELS,
 } from '../lib/events'
+import {
+  defaultDeposit,
+  formatBalanceDue,
+  formatCurrencyInput,
+} from '../lib/money'
 
 export default function NewBookingPage() {
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [depositTouched, setDepositTouched] = useState(false)
   const [customEventTypes, setCustomEventTypes] = useState<string[]>([])
   const [showCustomEventType, setShowCustomEventType] = useState(false)
   const [customEventTypeInput, setCustomEventTypeInput] = useState('')
@@ -89,6 +97,28 @@ export default function NewBookingPage() {
     })
   }
 
+  // Deposit follows the rate at half until it's typed over. Clearing the field
+  // hands control back to the rate, so there's a way out of an override.
+  function handleRateChange(raw: string) {
+    const rate = formatCurrencyInput(raw)
+    setForm((prev) => ({
+      ...prev,
+      ratePackage: rate,
+      depositAmount: depositTouched ? prev.depositAmount : defaultDeposit(rate),
+    }))
+    setErrors((prev) => {
+      const next = { ...prev }
+      delete next.ratePackage
+      return next
+    })
+  }
+
+  function handleDepositChange(raw: string) {
+    const deposit = formatCurrencyInput(raw)
+    setDepositTouched(deposit !== '')
+    handleChange('depositAmount', deposit)
+  }
+
   function isValidPhone(value: string): boolean {
     const digits = value.replace(/\D/g, '')
     return digits.length >= 10 && digits.length <= 15
@@ -99,13 +129,6 @@ export default function NewBookingPage() {
     if (digits.length <= 3) return digits
     if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
     return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-  }
-
-  function formatCurrency(value: string): string {
-    const digits = value.replace(/[^\d]/g, '')
-    if (!digits) return ''
-    const num = parseInt(digits, 10)
-    return '$' + num.toLocaleString('en-US')
   }
 
   function validate(): boolean {
@@ -201,16 +224,18 @@ export default function NewBookingPage() {
             <div className={styles.statusSection}>
               <span className={styles.statusLabel}>Status</span>
               <div className={styles.segmented}>
-                {(['prospect', 'confirmed', 'lost'] as BookingStatus[]).map((s) => (
+                {BOOKING_STATUSES.map((s) => (
                   <button
                     key={s}
                     type="button"
                     className={`${styles.segment} ${
                       form.status === s ? styles.segmentActive : ''
-                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''}`}
+                    } ${form.status === s && s === 'lost' ? styles.segmentLost : ''} ${
+                      form.status === s && s === 'pending' ? styles.segmentPending : ''
+                    }`}
                     onClick={() => handleChange('status', s)}
                   >
-                    {s === 'prospect' ? 'Prospect' : s === 'confirmed' ? 'Confirmed' : 'Lost'}
+                    {STATUS_LABELS[s]}
                   </button>
                 ))}
               </div>
@@ -424,9 +449,7 @@ export default function NewBookingPage() {
                         className={styles.input}
                         placeholder="$2,500"
                         value={form.ratePackage}
-                        onChange={(e) =>
-                          handleChange('ratePackage', formatCurrency(e.target.value))
-                        }
+                        onChange={(e) => handleRateChange(e.target.value)}
                       />
                     </label>
 
@@ -436,10 +459,13 @@ export default function NewBookingPage() {
                         className={styles.input}
                         placeholder="$500"
                         value={form.depositAmount}
-                        onChange={(e) =>
-                          handleChange('depositAmount', formatCurrency(e.target.value))
-                        }
+                        onChange={(e) => handleDepositChange(e.target.value)}
                       />
+                      {!depositTouched && form.depositAmount && (
+                        <span className={styles.hintText}>
+                          Half the rate — type to override
+                        </span>
+                      )}
                     </label>
                   </div>
 
@@ -447,12 +473,7 @@ export default function NewBookingPage() {
                     <div className={styles.field}>
                       <span className={styles.label}>Balance Due</span>
                       <div className={styles.calculatedField}>
-                        {(() => {
-                          const rate = parseInt(form.ratePackage.replace(/[^\d]/g, '') || '0')
-                          const deposit = parseInt(form.depositAmount.replace(/[^\d]/g, '') || '0')
-                          const balance = rate - deposit
-                          return balance > 0 ? `$${balance.toLocaleString()}` : '—'
-                        })()}
+                        {formatBalanceDue(form.ratePackage, form.depositAmount)}
                       </div>
                     </div>
 

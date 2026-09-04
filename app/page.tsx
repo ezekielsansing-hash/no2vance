@@ -5,6 +5,7 @@ import Link from 'next/link'
 import SiteHeader from './components/SiteHeader'
 import styles from './page.module.css'
 import {
+  BookingStatus,
   Customer,
   EventRecord,
   deleteEvent,
@@ -12,7 +13,12 @@ import {
   loadCustomers,
   loadEvents,
   updateEvent,
+  BOOKING_STATUSES,
+  STATUS_CHIP_CLASS,
+  STATUS_LABELS,
+  STATUS_PILL_CLASS,
 } from './lib/events'
+import { formatBalanceDue, formatCurrency } from './lib/money'
 
 type ViewMode = 'list' | 'calendar'
 type TimeScope = 'upcoming' | 'past' | 'all'
@@ -22,15 +28,6 @@ function formatPhoneNumber(value: string): string {
   if (digits.length <= 3) return digits
   if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`
   return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`
-}
-
-function formatCurrency(value: string): string {
-  if (!value) return ''
-  if (value.startsWith('$')) return value
-  const digits = value.replace(/[^\d]/g, '')
-  if (!digits) return value
-  const num = parseInt(digits, 10)
-  return '$' + num.toLocaleString('en-US')
 }
 
 function formatDate(dateStr: string): string {
@@ -58,7 +55,7 @@ export default function Home() {
   const [rangeOpen, setRangeOpen] = useState(false)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
-  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'confirmed']))
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'pending', 'confirmed']))
 
   const [showMigrateBanner, setShowMigrateBanner] = useState(false)
 
@@ -174,27 +171,19 @@ export default function Home() {
     setRangeOpen(false)
   }
 
-  async function handleConvert(id: string) {
+  async function handleSetStatus(id: string, status: BookingStatus) {
     const event = events.find((e) => e.id === id)
     if (!event) return
     const updated: EventRecord = {
       ...event,
-      status: 'confirmed',
-      convertedAt: new Date().toISOString(),
+      status,
+      // Stamped the first time a booking is actually won, and never rewritten
+      // — re-confirming an old booking shouldn't move it in the timeline.
+      convertedAt:
+        status === 'confirmed'
+          ? event.convertedAt || new Date().toISOString()
+          : event.convertedAt,
     }
-    try {
-      await updateEvent(updated)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Update failed')
-      return
-    }
-    setEvents((prev) => prev.map((e) => (e.id === id ? updated : e)))
-  }
-
-  async function handleMarkAsLost(id: string) {
-    const event = events.find((e) => e.id === id)
-    if (!event) return
-    const updated: EventRecord = { ...event, status: 'lost' }
     try {
       await updateEvent(updated)
     } catch (err) {
@@ -368,12 +357,12 @@ export default function Home() {
                   <div className={styles.toolbarRow}>
                     <span className={styles.toolLabel}>Status</span>
                     <div className={styles.statusFilterGroup}>
-                      {(['prospect', 'confirmed', 'lost'] as const).map((status) => (
+                      {BOOKING_STATUSES.map((status) => (
                         <button
                           key={status}
                           type="button"
                           className={`${styles.statusChip} ${
-                            status === 'prospect' ? styles.chipProspect : status === 'confirmed' ? styles.chipConfirmed : styles.chipLost
+                            styles[STATUS_CHIP_CLASS[status]]
                           } ${statusFilter.has(status) ? styles.statusChipOn : ''}`}
                           aria-pressed={statusFilter.has(status)}
                           onClick={() => {
@@ -388,7 +377,7 @@ export default function Home() {
                             })
                           }}
                         >
-                          {status === 'prospect' ? 'Prospect' : status === 'confirmed' ? 'Confirmed' : 'Lost'}
+                          {STATUS_LABELS[status]}
                         </button>
                       ))}
                     </div>
@@ -446,14 +435,8 @@ export default function Home() {
                           <span className={styles.eventType}>
                             {getCustomerName(event)}
                           </span>
-                          <span className={`${styles.pill} ${
-                            event.status === 'prospect'
-                              ? styles.pillProspect
-                              : event.status === 'lost'
-                              ? styles.pillLost
-                              : styles.pillConfirmed
-                          }`}>
-                            {event.status === 'prospect' ? 'Prospect' : event.status === 'lost' ? 'Lost' : 'Confirmed'}
+                          <span className={`${styles.pill} ${styles[STATUS_PILL_CLASS[event.status]]}`}>
+                            {STATUS_LABELS[event.status]}
                           </span>
                           {event.effortLevel && (
                             <span className={`${styles.pill} ${styles.pillEffort}`}>
@@ -567,19 +550,35 @@ export default function Home() {
                       </p>
                     </div>
                     <div className={styles.detailActions}>
-                      {activeEvent.status === 'prospect' && (
+                      {(activeEvent.status === 'prospect' ||
+                        activeEvent.status === 'pending') && (
                         <>
+                          {activeEvent.status === 'prospect' && (
+                            <button
+                              type="button"
+                              className={`${styles.button} ${styles.ghostButton}`}
+                              onClick={() =>
+                                handleSetStatus(activeEvent.id, 'pending')
+                              }
+                            >
+                              Contract Sent
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={`${styles.button} ${styles.confirmButton}`}
-                            onClick={() => handleConvert(activeEvent.id)}
+                            onClick={() =>
+                              handleSetStatus(activeEvent.id, 'confirmed')
+                            }
                           >
-                            Convert to Booking
+                            {activeEvent.status === 'pending'
+                              ? 'Deposit Paid'
+                              : 'Convert to Booking'}
                           </button>
                           <button
                             type="button"
                             className={`${styles.button} ${styles.lostButton}`}
-                            onClick={() => handleMarkAsLost(activeEvent.id)}
+                            onClick={() => handleSetStatus(activeEvent.id, 'lost')}
                           >
                             Mark as Lost
                           </button>
@@ -641,12 +640,7 @@ export default function Home() {
                     <div>
                       <dt>Balance Due</dt>
                       <dd>
-                        {(() => {
-                          const rate = parseInt((activeEvent.ratePackage || '').replace(/[^\d]/g, '') || '0')
-                          const deposit = parseInt((activeEvent.depositAmount || '').replace(/[^\d]/g, '') || '0')
-                          const balance = rate - deposit
-                          return balance > 0 ? `$${balance.toLocaleString()}` : '—'
-                        })()}
+                        {formatBalanceDue(activeEvent.ratePackage, activeEvent.depositAmount)}
                       </dd>
                     </div>
                     <div>

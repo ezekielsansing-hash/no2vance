@@ -269,6 +269,11 @@
   color: var(--red-ink);
 }
 
+.segmentPending {
+  background: var(--pink-soft);
+  color: var(--pink-ink);
+}
+
 .formFooter {
   margin-top: 0.5rem;
   display: flex;
@@ -366,4 +371,85 @@
   .fieldRow {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+.hintText {
+  font-size: 0.74rem;
+  color: var(--ink-faint);
+}
+
+.checkStack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  border: 2px solid var(--ink);
+  padding: 0.7rem 0.8rem;
+  background: var(--card);
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.checkLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.83rem;
+  cursor: pointer;
+}
+
+.checkValue {
+  max-width: 11rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.8rem;
+}
+
+.contractLinkBox {
+  margin-top: 1rem;
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--wash);
+  padding: 0.9rem 1rem;
+}
+
+.contractStatus {
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.contractHint {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin-bottom: 0.6rem;
+}
+
+.contractMissing {
+  font-size: 0.78rem;
+  color: var(--red-ink);
+  margin-bottom: 0.6rem;
+}
+
+.copyLinkButton {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+}
+
+.copyLinkButton:disabled {
+  background: var(--ink-faint);
+  border-color: var(--ink-faint);
+  cursor: not-allowed;
 }

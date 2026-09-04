@@ -440,3 +440,15 @@
     max-height: none;
   }
 }
+
+.pillPending {
+  background: var(--pink-soft);
+}
+
+.pillPending::before {
+  background: var(--pink);
+  border: none;
+  width: 9px;
+  height: 9px;
+  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
+}
