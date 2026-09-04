@@ -1,4 +1,5 @@
 import SiteHeader from '../components/SiteHeader'
+import { SUPPORT_EMAIL } from '../lib/legal'
 import { isQuickBooksConfigured } from '../lib/quickbooks/config'
 import { getConnectionStatus } from '../lib/quickbooks/oauth'
 import styles from './page.module.css'
@@ -107,6 +108,17 @@ export default async function SettingsPage({
               </div>
             </>
           )}
+        </section>
+
+        <section className={styles.card}>
+          <h2 className={styles.cardTitle}>Support</h2>
+          <p className={styles.body}>
+            Something not working, or a question about a booking or contract?
+            Email <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>.
+          </p>
+          <p className={styles.body}>
+            <a href="/terms">Terms of Use</a> · <a href="/privacy">Privacy Policy</a>
+          </p>
         </section>
       </main>
     </div>

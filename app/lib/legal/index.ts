@@ -16,6 +16,13 @@ export const LEGAL_UPDATED = 'September 4, 2026'
  */
 export const LEGAL_CONTACT_EMAIL = 'no2vance@gmail.com'
 
+/**
+ * Shown as the support contact in the app and on the customer acceptance page.
+ * Same address as the legal contact today; kept as its own constant so the two
+ * can diverge without editing the policy text.
+ */
+export const SUPPORT_EMAIL = LEGAL_CONTACT_EMAIL
+
 export const LEGAL_ENTITY = 'H. & S. Printing Co., Inc. dba No. 2 Vance'
 export const LEGAL_MAILING_ADDRESS = 'P.O. Box 2045, Memphis, TN 38101'
 

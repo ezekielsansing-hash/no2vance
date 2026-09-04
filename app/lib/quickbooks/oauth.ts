@@ -135,6 +135,7 @@ async function requestTokens(body: URLSearchParams): Promise<TokenResponse> {
       throw new Error(`Could not reach Intuit: ${lastError.message}`)
     }
 
+    const tid = response.headers.get('intuit_tid')
     const text = await response.text()
     if (response.ok) return JSON.parse(text) as TokenResponse
 
@@ -148,7 +149,9 @@ async function requestTokens(body: URLSearchParams): Promise<TokenResponse> {
 
     // Tokens are never present in an error body, so this is safe to log.
     lastError = new Error(
-      `Intuit token request failed (${response.status}): ${text}`,
+      `Intuit token request failed (${response.status})` +
+        (tid ? ` [intuit_tid ${tid}]` : '') +
+        `: ${text}`,
     )
     if (isTransient(response.status) && attempt < MAX_TOKEN_ATTEMPTS) {
       await sleep(300 * attempt)

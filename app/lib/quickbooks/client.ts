@@ -6,6 +6,12 @@ export class QuickBooksError extends Error {
     message: string,
     readonly status: number,
     readonly body: string,
+    /**
+     * Intuit's transaction id for the request, from the intuit_tid response
+     * header. It's the handle their support team uses to find a specific
+     * failed call in their own logs, so it belongs in every error we raise.
+     */
+    readonly tid: string | null = null,
   ) {
     super(message)
     this.name = 'QuickBooksError'
@@ -41,12 +47,17 @@ export async function quickBooksRequest<T>(
     cache: 'no-store',
   })
 
+  const tid = response.headers.get('intuit_tid')
   const text = await response.text()
   if (!response.ok) {
+    // The tid goes in the message as well as the field, so it survives into
+    // logs that only capture error.message.
     throw new QuickBooksError(
-      `QuickBooks request failed (${response.status}) for ${path}`,
+      `QuickBooks request failed (${response.status}) for ${path}` +
+        (tid ? ` [intuit_tid ${tid}]` : ''),
       response.status,
       text,
+      tid,
     )
   }
   return JSON.parse(text) as T

@@ -3,6 +3,7 @@ import {
   type BookingContractFields,
   type RenterContractFields,
 } from '../../lib/contract'
+import { SUPPORT_EMAIL } from '../../lib/legal'
 import { renderContractHtml } from '../../lib/contract/markdown'
 import { getServiceSupabase } from '../../lib/supabase-server'
 import AcceptForm from './AcceptForm'
@@ -37,6 +38,9 @@ function Shell({ children }: { children: React.ReactNode }) {
         {/* This page collects personal information, so the policy covering it
             should be reachable from the page itself. */}
         <p className={styles.footer}>
+          Questions about your booking or this agreement? Email{' '}
+          <a href={`mailto:${SUPPORT_EMAIL}`}>{SUPPORT_EMAIL}</a>
+          <br />
           <a href="/privacy">Privacy Policy</a>
           {' · '}
           <a href="/terms">Terms of Use</a>
