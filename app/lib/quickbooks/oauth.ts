@@ -1,10 +1,18 @@
 import { getServiceSupabase } from '../supabase-server'
-import {
-  INTUIT_AUTH_URL,
-  INTUIT_TOKEN_URL,
-  QUICKBOOKS_SCOPE,
-  getQuickBooksConfig,
-} from './config'
+import { QUICKBOOKS_SCOPE, getQuickBooksConfig } from './config'
+import { getEndpoints } from './discovery'
+
+/**
+ * Raised when Intuit says the refresh token is no longer valid — usually
+ * because access was revoked inside QuickBooks. Distinct from a transient
+ * failure: no amount of retrying fixes it, only reconnecting does.
+ */
+export class QuickBooksReauthorizationRequired extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'QuickBooksReauthorizationRequired'
+  }
+}
 
 export type QuickBooksConnection = {
   realmId: string
@@ -49,7 +57,8 @@ export async function beginAuthorization(): Promise<string> {
     redirect_uri: config.redirectUri,
     state,
   })
-  return `${INTUIT_AUTH_URL}?${params.toString()}`
+  const { authorizationEndpoint } = await getEndpoints(config.environment)
+  return `${authorizationEndpoint}?${params.toString()}`
 }
 
 /** Spend a state value. Returns false if it's unknown, already used, or stale. */
@@ -79,30 +88,76 @@ type TokenResponse = {
   x_refresh_token_expires_in: number
 }
 
+const MAX_TOKEN_ATTEMPTS = 3
+
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms))
+
+/**
+ * Whether a failed token request is worth trying again.
+ *
+ * 5xx and 429 are Intuit having a moment. Every other 4xx is a decision — bad
+ * credentials, a spent code, a revoked grant — and retrying just repeats it.
+ */
+function isTransient(status: number): boolean {
+  return status >= 500 || status === 429
+}
+
 async function requestTokens(body: URLSearchParams): Promise<TokenResponse> {
   const config = getQuickBooksConfig()
   const basic = Buffer.from(
     `${config.clientId}:${config.clientSecret}`,
   ).toString('base64')
+  const { tokenEndpoint } = await getEndpoints(config.environment)
 
-  const response = await fetch(INTUIT_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      Authorization: `Basic ${basic}`,
-      'Content-Type': 'application/x-www-form-urlencoded',
-      Accept: 'application/json',
-    },
-    body,
-    cache: 'no-store',
-  })
+  let lastError: Error | undefined
 
-  const text = await response.text()
-  if (!response.ok) {
-    // Intuit's error bodies can carry the request context; the tokens
-    // themselves are never in an error response, so this is safe to log.
-    throw new Error(`Intuit token request failed (${response.status}): ${text}`)
+  for (let attempt = 1; attempt <= MAX_TOKEN_ATTEMPTS; attempt += 1) {
+    let response: Response
+    try {
+      response = await fetch(tokenEndpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Basic ${basic}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Accept: 'application/json',
+        },
+        body,
+        cache: 'no-store',
+      })
+    } catch (err) {
+      // Network-level failure: no response at all, always worth retrying.
+      lastError = err instanceof Error ? err : new Error(String(err))
+      if (attempt < MAX_TOKEN_ATTEMPTS) {
+        await sleep(300 * attempt)
+        continue
+      }
+      throw new Error(`Could not reach Intuit: ${lastError.message}`)
+    }
+
+    const text = await response.text()
+    if (response.ok) return JSON.parse(text) as TokenResponse
+
+    // A revoked or otherwise dead grant. Retrying cannot help, and the caller
+    // needs to know this is a reconnect rather than a glitch.
+    if (text.includes('invalid_grant')) {
+      throw new QuickBooksReauthorizationRequired(
+        'QuickBooks access was revoked or has expired. Reconnect it in Settings.',
+      )
+    }
+
+    // Tokens are never present in an error body, so this is safe to log.
+    lastError = new Error(
+      `Intuit token request failed (${response.status}): ${text}`,
+    )
+    if (isTransient(response.status) && attempt < MAX_TOKEN_ATTEMPTS) {
+      await sleep(300 * attempt)
+      continue
+    }
+    throw lastError
   }
-  return JSON.parse(text) as TokenResponse
+
+  throw lastError ?? new Error('Intuit token request failed')
 }
 
 function toRow(realmId: string, tokens: TokenResponse) {
@@ -193,12 +248,30 @@ export async function getAccessToken(): Promise<{
     return { accessToken: connection.accessToken, realmId: connection.realmId }
   }
 
-  const tokens = await requestTokens(
-    new URLSearchParams({
-      grant_type: 'refresh_token',
-      refresh_token: connection.refreshToken,
-    }),
-  )
+  let tokens: TokenResponse
+  try {
+    tokens = await requestTokens(
+      new URLSearchParams({
+        grant_type: 'refresh_token',
+        refresh_token: connection.refreshToken,
+      }),
+    )
+  } catch (err) {
+    if (err instanceof QuickBooksReauthorizationRequired) {
+      // Mark the stored connection dead so Settings shows "expired" and
+      // prompts a reconnect, rather than continuing to look healthy while
+      // every invoice call fails.
+      await getServiceSupabase()
+        .from('quickbooks_connection')
+        .update({
+          refresh_expires_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', 'default')
+    }
+    throw err
+  }
+
   const { error } = await getServiceSupabase()
     .from('quickbooks_connection')
     .update(toRow(connection.realmId, tokens))

@@ -9,13 +9,6 @@ export type QuickBooksConfig = {
   apiBase: string
 }
 
-/** Intuit's OAuth endpoints are the same for both environments. */
-export const INTUIT_AUTH_URL = 'https://appcenter.intuit.com/connect/oauth2'
-export const INTUIT_TOKEN_URL =
-  'https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer'
-export const INTUIT_REVOKE_URL =
-  'https://developer.api.intuit.com/v2/oauth2/tokens/revoke'
-
 /** Accounting scope. Online invoice payment rides on the invoice itself. */
 export const QUICKBOOKS_SCOPE = 'com.intuit.quickbooks.accounting'
 

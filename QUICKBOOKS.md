@@ -95,13 +95,14 @@ into PCI scope. QuickBooks Payments vaults cards properly; card-on-file should
 go through it, or stay a paper form handled in person. Section 14's
 `cardOnFile` item now refers to "a separate authorization form" instead.
 
-**Section 3's payment methods now describe the QuickBooks invoice** — credit
-card, debit card, or ACH through the payment link, or check to the P.O. box.
+**Section 3 currently carries the pre-QuickBooks wording** — Venmo, Cash App,
+cash, or check. The app can't issue invoices until Intuit grants production
+keys, and a contract must not point a renter at a payment link that doesn't
+exist.
 
-That wording is only true once QuickBooks is actually issuing invoices. If the
-acceptance page ships before Phase 2, swap in `INTERIM_PAYMENT_METHODS`, which
-keeps the old Venmo/Cash App/cash/check list — a contract must not point a
-renter at a payment link that doesn't exist yet.
+`QUICKBOOKS_PAYMENT_METHODS` holds the replacement wording. Switching to it is
+a one-line change, and should come with a `CONTRACT_VERSION` bump so
+agreements accepted under each wording stay distinguishable.
 
 Two consequences of the change worth noting. **Cash App is gone**, since
 QuickBooks doesn't offer it; if you still want to take it, it has to stay in
@@ -246,12 +247,9 @@ rewrite.
 only the public acceptance page and its POST endpoint need the service role.
 That kept the new server-side surface to two files.
 
-**One decision is blocking this from being usable.** Section 3 currently
-describes paying through a QuickBooks invoice link, which doesn't exist until
-Phase 2. Either swap `VENUE_TERMS.paymentMethods` for
-`INTERIM_PAYMENT_METHODS` (the Venmo / Cash App / cash / check wording) and
-start sending contracts now, or hold the acceptance page until QuickBooks is
-connected. It's a one-line change either way.
+**Resolved:** Section 3 carries the pre-QuickBooks wording, so contracts can
+go out now. It switches to `QUICKBOOKS_PAYMENT_METHODS` when production keys
+land.
 
 ### 1.6 One bug the end-to-end run caught
 

@@ -1,5 +1,4 @@
 import type { BookingContractFields, Requirements } from './contract'
-import { CONTRACT_VERSION } from './contract'
 import { formatCurrency } from './money'
 import type { EventRecord } from './events'
 import { getSupabase } from './supabase'
@@ -12,6 +11,11 @@ export type BookingLink = {
   depositAmount: string
   createdAt: string
   voidedAt?: string
+  /** Absent when QuickBooks wasn't connected at the time the link was made. */
+  invoiceId?: string
+  docNumber?: string
+  paymentLink?: string
+  paidAt?: string
 }
 
 export type ContractAcceptance = {
@@ -128,35 +132,34 @@ function rowToLink(row: LinkRow): BookingLink {
     depositAmount: (row.deposit_amount as string) || '',
     createdAt: (row.created_at as string) || '',
     voidedAt: (row.voided_at as string) || undefined,
+    invoiceId: (row.qbo_invoice_id as string) || undefined,
+    docNumber: (row.qbo_doc_number as string) || undefined,
+    paymentLink: (row.qbo_payment_link as string) || undefined,
+    paidAt: (row.paid_at as string) || undefined,
   }
 }
 
 /**
- * Freeze the booking's terms into a new link. Later edits to the booking do
- * not change a link that has already been sent — that's the whole point of
- * copying the values in rather than reading them live.
+ * Create a link for a booking, freezing its terms and raising the QuickBooks
+ * deposit invoice.
+ *
+ * Runs through the server because invoicing needs the Intuit client secret.
+ * A `warning` in the response means the link exists but the invoice didn't —
+ * the contract still works, there's just nothing to pay yet.
  */
 export async function createBookingLink(
-  event: EventRecord,
-): Promise<BookingLink> {
-  const link: BookingLink = {
-    token: generateToken(),
-    eventId: event.id,
-    contractVersion: CONTRACT_VERSION,
-    bookingFields: bookingContractFields(event),
-    depositAmount: formatCurrency(event.depositAmount),
-    createdAt: new Date().toISOString(),
-  }
-  const { error } = await getSupabase().from('booking_links').insert({
-    token: link.token,
-    event_id: link.eventId,
-    contract_version: link.contractVersion,
-    booking_fields: link.bookingFields,
-    deposit_amount: link.depositAmount,
-    created_at: link.createdAt,
+  eventId: string,
+): Promise<{ token: string; warning?: string }> {
+  const response = await fetch('/api/links', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ eventId }),
   })
-  if (error) throw new Error(`Could not create contract link: ${error.message}`)
-  return link
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.error || 'Could not create contract link')
+  }
+  return data as { token: string; warning?: string }
 }
 
 /** Most recent link for a booking, plus whether it has been accepted. */

@@ -21,24 +21,28 @@ export const VENUE_TERMS = {
   returnedCheckFee: '$100',
   overtimeRate: '$100',
   /**
-   * Section 3. This describes the QuickBooks invoice, so it is only accurate
-   * once QuickBooks is actually issuing invoices (Phase 2). If the acceptance
-   * page ships first, swap in INTERIM_PAYMENT_METHODS below — a contract must
-   * not point a renter at a payment link that doesn't exist yet.
+   * Section 3. Currently the pre-QuickBooks wording, because the app cannot
+   * issue invoices until Intuit grants production keys — a contract must not
+   * point a renter at a payment link that doesn't exist.
    *
-   * Card and ACH are what QuickBooks Payments always offers. PayPal and Venmo
-   * can also appear on QuickBooks invoices if enabled on the account; add them
-   * here only after confirming they're switched on, not before.
+   * When production keys land, switch this to QUICKBOOKS_PAYMENT_METHODS below
+   * and bump CONTRACT_VERSION, so agreements accepted under each wording stay
+   * distinguishable.
    */
   paymentMethods:
-    'Credit card, debit card, or bank transfer (ACH) using the secure payment ' +
-    'link on the invoice we send you, or check made payable to: ' +
+    'Venmo, Cash App, cash, or check made payable to: ' +
     'H & S Printing Co., Inc. / P.O. Box 2045 / Memphis, TN 38101',
 } as const
 
-/** Pre-QuickBooks wording, for use if the acceptance page ships first. */
-export const INTERIM_PAYMENT_METHODS =
-  'Venmo, Cash App, cash, or check made payable to: ' +
+/**
+ * Section 3 once QuickBooks is issuing invoices. Card and ACH are what
+ * QuickBooks Payments always offers, and both are confirmed active on the
+ * company. PayPal and Venmo can also appear on QuickBooks invoices if enabled
+ * on the account — add them here only after confirming, not before.
+ */
+export const QUICKBOOKS_PAYMENT_METHODS =
+  'Credit card, debit card, or bank transfer (ACH) using the secure payment ' +
+  'link on the invoice we send you, or check made payable to: ' +
   'H & S Printing Co., Inc. / P.O. Box 2045 / Memphis, TN 38101'
 
 // --------------------------------------------------------------------------

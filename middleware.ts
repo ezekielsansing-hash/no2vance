@@ -41,7 +41,10 @@ export async function middleware(request: NextRequest) {
     // Intuit requires these to be publicly reachable before issuing
     // production keys, and a privacy policy nobody can read is useless.
     pathname === '/terms' ||
-    pathname === '/privacy'
+    pathname === '/privacy' ||
+    // Intuit posts here from its own servers, with no session. It authenticates
+    // with an HMAC signature instead, checked inside the route.
+    pathname === '/api/quickbooks/webhook'
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone()

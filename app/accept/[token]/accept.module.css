@@ -291,3 +291,34 @@
 .footer a {
   color: var(--ink-soft);
 }
+
+.payButton {
+  display: inline-block;
+  margin-top: 0.75rem;
+  border: 2px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.6rem 1.2rem;
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.paidBox {
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  background: var(--teal-soft);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.paidTitle {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--teal-ink);
+}

@@ -92,10 +92,19 @@ export default function EditBookingPage() {
     if (!savedEvent) return
     setCopying(true)
     try {
-      const link = linkStatus?.link ?? (await createBookingLink(savedEvent))
-      if (!linkStatus) setLinkStatus({ link })
-      const url = `${window.location.origin}/accept/${link.token}`
-      await navigator.clipboard.writeText(url)
+      let token = linkStatus?.link.token
+      if (!token) {
+        const created = await createBookingLink(savedEvent.id)
+        token = created.token
+        // The link works regardless; this only reports that the invoice part
+        // didn't, so the deposit can be chased another way.
+        if (created.warning) alert(created.warning)
+        const refreshed = await loadLinkStatus(savedEvent.id)
+        setLinkStatus(refreshed)
+      }
+      await navigator.clipboard.writeText(
+        `${window.location.origin}/accept/${token}`,
+      )
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     } catch (err) {
@@ -833,10 +842,22 @@ export default function EditBookingPage() {
                     {linkStatus ? (
                       <>
                         <p className={styles.contractStatus}>
-                          {linkStatus.acceptedAt
-                            ? `Contract accepted ${new Date(linkStatus.acceptedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}`
+                          {linkStatus.link.paidAt
+                            ? `Deposit paid ${new Date(linkStatus.link.paidAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}`
+                            : linkStatus.acceptedAt
+                            ? `Contract accepted ${new Date(linkStatus.acceptedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })} — deposit outstanding`
                             : 'Link sent — not yet accepted'}
                         </p>
+                        {linkStatus.link.docNumber && (
+                          <p className={styles.contractHint}>
+                            QuickBooks invoice #{linkStatus.link.docNumber}
+                          </p>
+                        )}
+                        {!linkStatus.link.invoiceId && (
+                          <p className={styles.contractMissing}>
+                            No QuickBooks invoice attached to this link.
+                          </p>
+                        )}
                         <p className={styles.contractHint}>
                           Terms were frozen when this link was created. Editing
                           the booking above does not change what the customer

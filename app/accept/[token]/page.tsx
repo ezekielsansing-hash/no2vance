@@ -55,7 +55,7 @@ export default async function AcceptPage({
 
   const { data: link } = await supabase
     .from('booking_links')
-    .select('token, contract_version, booking_fields, deposit_amount, voided_at')
+    .select('token, contract_version, booking_fields, deposit_amount, voided_at, qbo_payment_link, paid_at')
     .eq('token', params.token)
     .maybeSingle()
 
@@ -124,16 +124,41 @@ export default async function AcceptPage({
               )}
             </p>
           </div>
-          <div className={styles.payBox}>
-            <p className={styles.payTitle}>
-              Deposit due: {link.deposit_amount as string}
-            </p>
-            <p className={styles.payBody}>
-              Your date is not reserved until the deposit is received. Payment
-              details are in Section 3 below. If you have already paid, no
-              action is needed.
-            </p>
-          </div>
+          {link.paid_at ? (
+            <div className={styles.paidBox}>
+              <p className={styles.paidTitle}>Deposit received — your date is reserved</p>
+              <p className={styles.payBody}>
+                Paid{' '}
+                {new Date(link.paid_at as string).toLocaleDateString('en-US', {
+                  dateStyle: 'long',
+                })}
+                . Nothing further is needed right now; the balance is due seven
+                days before your event.
+              </p>
+            </div>
+          ) : (
+            <div className={styles.payBox}>
+              <p className={styles.payTitle}>
+                Deposit due: {link.deposit_amount as string}
+              </p>
+              <p className={styles.payBody}>
+                Your date is not reserved until the deposit is received.
+              </p>
+              {link.qbo_payment_link ? (
+                <a
+                  className={styles.payButton}
+                  href={link.qbo_payment_link as string}
+                >
+                  Pay deposit
+                </a>
+              ) : (
+                <p className={styles.payBody}>
+                  Payment methods are listed in Section 3 below. If you have
+                  already paid, no action is needed.
+                </p>
+              )}
+            </div>
+          )}
           <article
             className={styles.contract}
             dangerouslySetInnerHTML={{ __html: contractHtml }}
