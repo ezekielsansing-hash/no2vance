@@ -95,17 +95,16 @@ into PCI scope. QuickBooks Payments vaults cards properly; card-on-file should
 go through it, or stay a paper form handled in person. Section 14's
 `cardOnFile` item now refers to "a separate authorization form" instead.
 
-**Section 3's payment wording is versioned — BUILT, NOT YET FLIPPED.** v1
-carries the pre-QuickBooks wording (Venmo, Cash App, cash, or check) because a
-contract must not point a renter at a payment link that doesn't exist. v2
-exists and points at the payment link on the QuickBooks invoice.
+**Section 3's payment wording is versioned — DONE, v2 IS CURRENT.** v1 carried
+the pre-QuickBooks wording (Venmo, Cash App, cash, or check) because a contract
+must not point a renter at a payment link that doesn't exist. v2 points at the
+payment link on the QuickBooks invoice, and became current once production was
+connected to the real company.
 
-`CONTRACT_VERSION` stays `v1` until `/settings` reports QuickBooks
-**Connected** in the production environment. Intuit has approved the app, but
-production is currently missing its QuickBooks environment variables, so
-invoice creation there would fail and a v2 contract would send renters to an
-invoice that was never issued. Flipping the constant is the last step, not the
-first.
+Flipping `CONTRACT_VERSION` was deliberately the *last* step of going live, not
+the first: while QuickBooks is unreachable, invoice creation fails non-fatally
+and a v2 contract would send renters to an invoice that was never issued. If
+the connection ever lapses for any length of time, drop back to `v1`.
 
 The two versions share one body: they differ only in the `{{paymentMethods}}`
 placeholder, so the terms are versioned rather than the text. `CONTRACT_TERMS`
@@ -292,16 +291,32 @@ contract's contents, not the mechanism.
 
 ---
 
-## Phase 2 — QuickBooks — BUILT, AWAITING PRODUCTION CONFIG
+## Phase 2 — QuickBooks — LIVE
 
 **Intuit approved the app.** Intuit requires an app assessment questionnaire
 before issuing production keys, even for a private app used only by your own
 company — it was the long pole, as expected.
 
-**Production is not configured yet**: `/settings` on book.no2vance.com reports
-the QuickBooks environment variables missing. Set all four for Vercel's
-Production environment, redeploy (Vercel reads them at deploy time), then
-connect from `/settings`.
+**Production is connected to the real company** and `CONTRACT_VERSION` is `v2`.
+Going live took three passes worth recording, because each looked like success:
+
+1. `/settings` said *not configured* — the variables weren't set for Vercel's
+   **Production** scope, and Vercel reads them at deploy time, so setting them
+   without redeploying changes nothing.
+2. Then it said *Connected / sandbox* — the variables were set to the
+   Development key pair, and the leftover sandbox connection row agreed with
+   them, so the page looked healthy while pointing at fake books.
+3. Swapping in the Production key pair plus `QUICKBOOKS_ENVIRONMENT=production`
+   left the stored sandbox connection mismatched, which needed a **Reconnect**
+   against the real company.
+
+Settings now names the specific missing variable, and warns when the stored
+connection's environment disagrees with the configured one — both added
+because neither state was distinguishable from healthy.
+
+Sandbox and production are separate app configs at Intuit: redirect URIs,
+webhook endpoints, and verifier tokens are registered per environment, so a URI
+on the sandbox app does nothing for production.
 
 `QUICKBOOKS_ENVIRONMENT` selects the API host, so the switch from sandbox to
 production is configuration, not code. A connection made in one environment
@@ -391,7 +406,9 @@ an unfamiliar number, so this may never be an upgrade.
 1. ~~Start the Intuit production key application.~~ Approved.
 2. ~~Phase 0 — money module, contract into the repo, Contract Sent status.~~
 3. ~~Phase 1 — links and acceptance page, working without QuickBooks.~~
-4. Phase 2 — code complete. **Next:** set the four QuickBooks variables on
-   Vercel Production, redeploy, connect at `/settings`, then flip
-   `CONTRACT_VERSION` to `v2`.
-5. Phase 3 — email, once it's worth it.
+4. ~~Phase 2 — wire up QuickBooks whenever approval lands.~~ Live on production
+   keys, connected to the real company, contract `v2` current.
+5. Phase 3 — email, once it's worth it. **Next**, alongside the two gaps this
+   phase left: nothing writes `booking_links.voided_at`, so there is no
+   void-and-reissue path and a second link means a second invoice; and the
+   payment webhook is unproven until a real payment runs through it.

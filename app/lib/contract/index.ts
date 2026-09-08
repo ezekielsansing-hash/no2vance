@@ -14,16 +14,14 @@ import { CONTRACT_V1 } from './v1'
  *   - only the **injected terms** change (a fee, the payment methods) -> add
  *     an entry to CONTRACT_TERMS, reusing the body it shares
  *
- * Still v1. v2 is built and ready, but do not flip this until /settings shows
- * QuickBooks **Connected** in the production environment: v2's Section 3 tells
- * the renter to pay via the link on the invoice, and with QuickBooks
- * unreachable, invoice creation fails non-fatally, the link goes out with no
- * payment link on it, and the acceptance page points the renter at Section 3 —
- * which points them back at the invoice that was never sent. v1's wording
- * (Venmo, cash, check) is actionable either way, which is why it stays until
- * the connection is real.
+ * v2 since QuickBooks went live on production keys. Its Section 3 sends the
+ * renter to the payment link on the invoice, which is only honest while the app
+ * can actually issue one: if QuickBooks is ever disconnected, invoice creation
+ * fails non-fatally and a v2 contract points the renter at an invoice that was
+ * never sent. Should that happen for any length of time, drop back to v1 — its
+ * Venmo/cash/check wording is actionable either way.
  */
-export const CONTRACT_VERSION = 'v1'
+export const CONTRACT_VERSION = 'v2'
 
 export const CONTRACT_TEXT: Record<string, string> = {
   v1: CONTRACT_V1,
