@@ -1,22 +1,44 @@
 import { CONTRACT_V1 } from './v1'
 
 /**
- * Bump this whenever the contract text changes, and add the new text as its
- * own file rather than editing an existing one. Every acceptance stores the
- * version and a full snapshot, so a booking accepted under v1 keeps showing v1
- * no matter what later versions say.
+ * The version every new link is issued under. Bump this whenever anything a
+ * renter reads changes — the body text or the terms injected into it. Every
+ * acceptance stores its version alongside a full snapshot, so a booking
+ * accepted under v1 keeps showing v1 no matter what later versions say.
+ *
+ * Two kinds of change, two places to make them, and neither ever edits an
+ * existing version:
+ *
+ *   - the agreement's **wording** changes -> add `vN.ts` and register it in
+ *     CONTRACT_TEXT below
+ *   - only the **injected terms** change (a fee, the payment methods) -> add
+ *     an entry to CONTRACT_TERMS, reusing the body it shares
+ *
+ * Still v1. v2 is built and ready, but do not flip this until /settings shows
+ * QuickBooks **Connected** in the production environment: v2's Section 3 tells
+ * the renter to pay via the link on the invoice, and with QuickBooks
+ * unreachable, invoice creation fails non-fatally, the link goes out with no
+ * payment link on it, and the acceptance page points the renter at Section 3 —
+ * which points them back at the invoice that was never sent. v1's wording
+ * (Venmo, cash, check) is actionable either way, which is why it stays until
+ * the connection is real.
  */
 export const CONTRACT_VERSION = 'v1'
 
 export const CONTRACT_TEXT: Record<string, string> = {
   v1: CONTRACT_V1,
+  /**
+   * v2 is v1's body, unedited. The only difference between the two versions is
+   * Section 3's payment methods, which the body carries as a
+   * {{paymentMethods}} placeholder — see CONTRACT_TERMS. Copying two hundred
+   * lines of legal text to change one injected line would leave two copies to
+   * keep in step, and the next fix to Section 7 would land in only one of
+   * them. What must never change is a version's *rendered* output, and
+   * freezing the terms per version is what guarantees that.
+   */
+  v2: CONTRACT_V1,
 }
 
-/**
- * Venue-wide terms. These are the same on every contract, so they live here
- * rather than on the booking — but they are versioned along with the text,
- * because changing one changes what a renter is agreeing to.
- */
 /**
  * Fire-code occupancy limit. Stated twice in the agreement (Sections 1 and 5)
  * as a hard limit that will be strictly enforced, so a booking above it would
@@ -25,33 +47,66 @@ export const CONTRACT_TEXT: Record<string, string> = {
  */
 export const MAX_OCCUPANCY = 75
 
-export const VENUE_TERMS = {
-  returnedCheckFee: '$100',
-  overtimeRate: '$100',
-  /**
-   * Section 3. Currently the pre-QuickBooks wording, because the app cannot
-   * issue invoices until Intuit grants production keys — a contract must not
-   * point a renter at a payment link that doesn't exist.
-   *
-   * When production keys land, switch this to QUICKBOOKS_PAYMENT_METHODS below
-   * and bump CONTRACT_VERSION, so agreements accepted under each wording stay
-   * distinguishable.
-   */
-  paymentMethods:
-    'Venmo, Cash App, cash, or check made payable to: ' +
-    'H & S Printing Co., Inc. / P.O. Box 2045 / Memphis, TN 38101',
-} as const
+/**
+ * Keeps a guest-count input at or below the fire-code limit as it is typed.
+ * The `max` attribute alone only constrains the spinner, so a pasted or typed
+ * 150 would still reach the form. Blank stays blank so the field can be
+ * cleared, and anything non-numeric is dropped.
+ */
+export function clampGuestCount(value: string): string {
+  const digits = value.replace(/[^\d]/g, '')
+  if (digits === '') return ''
+  return String(Math.min(parseInt(digits, 10), MAX_OCCUPANCY))
+}
 
 /**
- * Section 3 once QuickBooks is issuing invoices. Card and ACH are what
- * QuickBooks Payments always offers, and both are confirmed active on the
- * company. PayPal and Venmo can also appear on QuickBooks invoices if enabled
- * on the account — add them here only after confirming, not before.
+ * Venue-wide terms — the same on every contract of a given version, so they
+ * live here rather than on the booking.
+ *
+ * They are versioned along with the text because changing one changes what a
+ * renter is agreeing to. An entry here is frozen the moment a contract goes
+ * out under its version: edit the v1 entry and you have rewritten what past
+ * v1 links render, which is the one thing this whole scheme exists to prevent.
  */
-export const QUICKBOOKS_PAYMENT_METHODS =
-  'Credit card, debit card, or bank transfer (ACH) using the secure payment ' +
-  'link on the invoice we send you, or check made payable to: ' +
+export type VenueTerms = {
+  returnedCheckFee: string
+  overtimeRate: string
+  /** Section 3. */
+  paymentMethods: string
+}
+
+const MAILED_CHECK =
+  'check made payable to: ' +
   'H & S Printing Co., Inc. / P.O. Box 2045 / Memphis, TN 38101'
+
+export const CONTRACT_TERMS: Record<string, VenueTerms> = {
+  /**
+   * The pre-QuickBooks wording, from before Intuit issued production keys.
+   * Kept exactly as it was: links created under v1 still render from it.
+   */
+  v1: {
+    returnedCheckFee: '$100',
+    overtimeRate: '$100',
+    paymentMethods: `Venmo, Cash App, cash, or ${MAILED_CHECK}`,
+  },
+  /**
+   * QuickBooks is issuing the invoices, so Section 3 points at the payment
+   * link on the invoice. Card and ACH are what QuickBooks Payments always
+   * offers, and both are confirmed active on the company.
+   *
+   * Cash App is deliberately gone — QuickBooks doesn't offer it, and a
+   * contract shouldn't name a method the invoice can't take. PayPal and Venmo
+   * *can* appear on QuickBooks invoices, but add them only after confirming
+   * they're enabled on the account, and in a new version.
+   */
+  v2: {
+    returnedCheckFee: '$100',
+    overtimeRate: '$100',
+    paymentMethods:
+      'Credit card, debit card, or bank transfer (ACH) using the secure ' +
+      `payment link on the invoice we send you, or ${MAILED_CHECK}`,
+  },
+}
 
 // --------------------------------------------------------------------------
 // Section 14 — per-event requirements
@@ -173,6 +228,11 @@ export function renderContract(
   const template = CONTRACT_TEXT[version]
   if (!template) throw new Error(`Unknown contract version: ${version}`)
 
+  // Terms are part of the version, not global: whatever CONTRACT_VERSION says
+  // today, a v1 link has to keep rendering v1's payment methods.
+  const terms = CONTRACT_TERMS[version]
+  if (!terms) throw new Error(`No venue terms for contract version: ${version}`)
+
   const values: Record<string, string> = {
     ...renter,
     eventType: booking.eventType,
@@ -192,9 +252,9 @@ export function renderContract(
     contactName: renter.contactName || renter.renterName,
     onSiteParty: renter.onSiteParty || 'Same as Renter',
     onSiteCell: renter.onSiteCell || renter.renterCell,
-    returnedCheckFee: VENUE_TERMS.returnedCheckFee,
-    overtimeRate: VENUE_TERMS.overtimeRate,
-    paymentMethods: VENUE_TERMS.paymentMethods,
+    returnedCheckFee: terms.returnedCheckFee,
+    overtimeRate: terms.overtimeRate,
+    paymentMethods: terms.paymentMethods,
   }
 
   const filled = template.replace(

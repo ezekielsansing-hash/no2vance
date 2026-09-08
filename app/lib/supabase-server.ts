@@ -1,4 +1,6 @@
+import { createServerClient } from '@supabase/ssr'
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { cookies } from 'next/headers'
 
 let admin: SupabaseClient | undefined
 
@@ -38,4 +40,32 @@ export function getServiceSupabase(): SupabaseClient {
     })
   }
   return admin
+}
+
+/**
+ * Server-side Supabase client bound to the signed-in staff member's cookies,
+ * so reads go through RLS as that user.
+ *
+ * Use this — not the service client — for staff-facing server components.
+ * Middleware already redirects anonymous visitors away from those routes, but
+ * a page that displays a legal record shouldn't also be relying on the route
+ * matcher for its authorization.
+ */
+export function getSessionSupabase() {
+  const store = cookies()
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return store.getAll()
+        },
+        setAll() {
+          // Server components can't write cookies. Middleware refreshes the
+          // session on every request, so there is nothing to persist here.
+        },
+      },
+    },
+  )
 }

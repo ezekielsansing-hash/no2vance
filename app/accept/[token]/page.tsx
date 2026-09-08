@@ -1,8 +1,4 @@
-import {
-  renderContract,
-  type BookingContractFields,
-  type RenterContractFields,
-} from '../../lib/contract'
+import { type BookingContractFields } from '../../lib/contract'
 import { SUPPORT_EMAIL } from '../../lib/legal'
 import { renderContractHtml } from '../../lib/contract/markdown'
 import { getServiceSupabase } from '../../lib/supabase-server'
@@ -10,25 +6,6 @@ import AcceptForm from './AcceptForm'
 import styles from './accept.module.css'
 
 export const dynamic = 'force-dynamic'
-
-/**
- * While the agreement is being read, the renter's own blanks show as rules,
- * the way they do on the paper form. Their real answers are substituted in
- * when they accept, and that filled version is what gets stored.
- */
-const BLANK: RenterContractFields = {
-  renterName: '__________',
-  renterAddress: '__________',
-  renterCity: '__________',
-  renterState: '____',
-  renterZip: '______',
-  renterPhone: '__________',
-  renterCell: '__________',
-  contactName: '__________',
-  renterEmail: '__________',
-  onSiteParty: '__________',
-  onSiteCell: '__________',
-}
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
@@ -86,14 +63,6 @@ export default async function AcceptPage({
 
   const fields = link.booking_fields as BookingContractFields
   const version = link.contract_version as string
-
-  // An accepted agreement shows the exact text that was agreed to, not a fresh
-  // render — the stored copy is the record, and re-rendering could differ.
-  const contractHtml = renderContractHtml(
-    acceptance
-      ? (acceptance.contract_text as string)
-      : renderContract(fields, BLANK, version),
-  )
 
   const summary = [
     ['Event', fields.eventType],
@@ -163,16 +132,22 @@ export default async function AcceptPage({
               )}
             </div>
           )}
+          {/* An accepted agreement shows the exact text that was agreed to,
+              not a fresh render — the stored copy is the record, and
+              re-rendering it could differ. */}
           <article
             className={styles.contract}
-            dangerouslySetInnerHTML={{ __html: contractHtml }}
+            dangerouslySetInnerHTML={{
+              __html: renderContractHtml(acceptance.contract_text as string),
+            }}
           />
         </>
       ) : (
         <AcceptForm
           token={params.token}
           depositAmount={link.deposit_amount as string}
-          contractHtml={contractHtml}
+          bookingFields={fields}
+          contractVersion={version}
         />
       )}
     </Shell>

@@ -1,10 +1,21 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import {
+  renderContract,
+  type BookingContractFields,
+  type RenterContractFields,
+} from '../../lib/contract'
+import { renderContractHtml } from '../../lib/contract/markdown'
 import { formatPhoneNumber } from '../../lib/phone'
 import styles from './accept.module.css'
 
-type Field = { key: string; label: string; required: boolean; type?: string }
+type Field = {
+  key: keyof RenterContractFields
+  label: string
+  required: boolean
+  type?: string
+}
 
 const FIELDS: Field[] = [
   { key: 'renterName', label: 'Name / Company', required: true },
@@ -24,19 +35,63 @@ const FIELDS: Field[] = [
   { key: 'onSiteCell', label: 'Their cell', required: false, type: 'tel' },
 ]
 
+/**
+ * What Section 2 shows for a field the renter hasn't filled in yet: a rule the
+ * width of the paper form's blank. Only fields that would otherwise render
+ * empty appear here — `contactName`, `onSiteParty` and `onSiteCell` are left
+ * out on purpose, because renderContract substitutes its own wording for those
+ * ("Same as Renter", the renter's own name), and the preview should say what
+ * the signed contract will say rather than showing a blank that never appears.
+ *
+ * `renterPhone` is left out for the same reason: it is optional with no
+ * substitute, so a signed contract with it blank prints nothing after
+ * "Phone:". Showing a rule here would promise a blank the agreement doesn't
+ * actually contain.
+ */
+const BLANK_RULES: Partial<Record<keyof RenterContractFields, string>> = {
+  renterName: '__________',
+  renterAddress: '__________',
+  renterCity: '__________',
+  renterState: '____',
+  renterZip: '______',
+  renterCell: '__________',
+  renterEmail: '__________',
+}
+
 export default function AcceptForm({
   token,
   depositAmount,
-  contractHtml,
+  bookingFields,
+  contractVersion,
 }: {
   token: string
   depositAmount: string
-  contractHtml: string
+  bookingFields: BookingContractFields
+  contractVersion: string
 }) {
   const [values, setValues] = useState<Record<string, string>>({})
   const [agreed, setAgreed] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+
+  /**
+   * The agreement is re-rendered from the template on every keystroke, so a
+   * name typed above appears in Section 2 immediately. Without this the
+   * section sits there full of rules after the form is filled in, which reads
+   * as a second set of blanks waiting to be edited.
+   *
+   * Values are trimmed and optional fields passed through empty, exactly as
+   * /api/accept does, so what's on screen is what gets stored on acceptance.
+   */
+  const contractHtml = useMemo(() => {
+    const renter = {} as RenterContractFields
+    for (const { key } of FIELDS) {
+      renter[key] = (values[key] ?? '').trim() || BLANK_RULES[key] || ''
+    }
+    return renderContractHtml(
+      renderContract(bookingFields, renter, contractVersion),
+    )
+  }, [values, bookingFields, contractVersion])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,7 +123,8 @@ export default function AcceptForm({
       <section className={styles.section}>
         <h2 className={styles.sectionTitle}>Your details</h2>
         <p className={styles.sectionNote}>
-          These fill in Section 2 of the agreement below.
+          Section 2 of the agreement below fills in as you type — the blanks
+          there aren&apos;t edited directly.
         </p>
         <div className={styles.fieldGrid}>
           {FIELDS.map((field) => (

@@ -57,10 +57,24 @@ export function getQuickBooksConfig(): QuickBooksConfig {
 
 /** True when the env vars are present, for rendering the settings UI. */
 export function isQuickBooksConfigured(): boolean {
+  return quickBooksConfigError() === null
+}
+
+/**
+ * Why QuickBooks isn't configured, or null when it is.
+ *
+ * Settings used to render a generic "add the environment variables" message
+ * for every failure, which is the least useful thing to say to someone who
+ * believes they already added them — a variable set on the wrong Vercel
+ * environment, a typo'd name, and an invalid QUICKBOOKS_ENVIRONMENT value all
+ * looked identical. getQuickBooksConfig already names the problem precisely;
+ * this stops throwing that away.
+ */
+export function quickBooksConfigError(): string | null {
   try {
     getQuickBooksConfig()
-    return true
-  } catch {
-    return false
+    return null
+  } catch (err) {
+    return err instanceof Error ? err.message : 'QuickBooks is not configured.'
   }
 }

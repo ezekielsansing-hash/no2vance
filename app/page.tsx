@@ -21,6 +21,7 @@ import {
 import { formatBalanceDue, formatCurrency } from './lib/money'
 import {
   contractProblems,
+  contractWarnings,
   createBookingLink,
   loadLinkStatus,
   missingForLink,
@@ -169,6 +170,7 @@ export default function Home() {
 
   const missingForContract = activeEvent ? missingForLink(activeEvent) : []
   const contractIssues = activeEvent ? contractProblems(activeEvent) : []
+  const contractNotices = activeEvent ? contractWarnings(activeEvent) : []
   const contractBlocked =
     missingForContract.length > 0 || contractIssues.length > 0
 
@@ -760,14 +762,32 @@ export default function Home() {
                               : 'Sent — not yet accepted'}
                           </span>
                         )}
-                        {missingForContract.length > 0 && (
+                        {contractLink?.acceptedAt && (
+                          <Link
+                            className={styles.contractNote}
+                            href={`/contracts/${contractLink.link.token}`}
+                          >
+                            View signed contract
+                          </Link>
+                        )}
+                        {contractLink?.link.docNumber && (
                           <span className={styles.contractNote}>
+                            QuickBooks invoice #{contractLink.link.docNumber}
+                          </span>
+                        )}
+                        {missingForContract.length > 0 && (
+                          <span className={styles.contractIssue}>
                             Needs: {missingForContract.join(', ')}
                           </span>
                         )}
                         {contractIssues.map((issue) => (
                           <span key={issue} className={styles.contractIssue}>
                             {issue}
+                          </span>
+                        ))}
+                        {contractNotices.map((notice) => (
+                          <span key={notice} className={styles.contractNote}>
+                            {notice}
                           </span>
                         ))}
                         {activeEvent.contractLink && (

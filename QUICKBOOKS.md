@@ -95,14 +95,24 @@ into PCI scope. QuickBooks Payments vaults cards properly; card-on-file should
 go through it, or stay a paper form handled in person. Section 14's
 `cardOnFile` item now refers to "a separate authorization form" instead.
 
-**Section 3 currently carries the pre-QuickBooks wording** — Venmo, Cash App,
-cash, or check. The app can't issue invoices until Intuit grants production
-keys, and a contract must not point a renter at a payment link that doesn't
-exist.
+**Section 3's payment wording is versioned — BUILT, NOT YET FLIPPED.** v1
+carries the pre-QuickBooks wording (Venmo, Cash App, cash, or check) because a
+contract must not point a renter at a payment link that doesn't exist. v2
+exists and points at the payment link on the QuickBooks invoice.
 
-`QUICKBOOKS_PAYMENT_METHODS` holds the replacement wording. Switching to it is
-a one-line change, and should come with a `CONTRACT_VERSION` bump so
-agreements accepted under each wording stay distinguishable.
+`CONTRACT_VERSION` stays `v1` until `/settings` reports QuickBooks
+**Connected** in the production environment. Intuit has approved the app, but
+production is currently missing its QuickBooks environment variables, so
+invoice creation there would fail and a v2 contract would send renters to an
+invoice that was never issued. Flipping the constant is the last step, not the
+first.
+
+The two versions share one body: they differ only in the `{{paymentMethods}}`
+placeholder, so the terms are versioned rather than the text. `CONTRACT_TERMS`
+in `contract/index.ts` holds one frozen entry per version, and `CONTRACT_TEXT`
+maps both v1 and v2 at the same `v1.ts` body. A v1 link still renders v1's
+wording; editing a version's entry would rewrite what past links say, which is
+the one thing the scheme exists to prevent.
 
 Two consequences of the change worth noting. **Cash App is gone**, since
 QuickBooks doesn't offer it; if you still want to take it, it has to stay in
@@ -247,9 +257,10 @@ rewrite.
 only the public acceptance page and its POST endpoint need the service role.
 That kept the new server-side surface to two files.
 
-**Resolved:** Section 3 carries the pre-QuickBooks wording, so contracts can
-go out now. It switches to `QUICKBOOKS_PAYMENT_METHODS` when production keys
-land.
+**Resolved:** Section 3 carried the pre-QuickBooks wording so contracts could
+go out before approval. Production keys have since landed and
+`CONTRACT_VERSION` is now `v2`, whose Section 3 points at the invoice payment
+link.
 
 ### 1.6 One bug the end-to-end run caught
 
@@ -281,13 +292,22 @@ contract's contents, not the mechanism.
 
 ---
 
-## Phase 2 — QuickBooks
+## Phase 2 — QuickBooks — BUILT, AWAITING PRODUCTION CONFIG
 
-**Blocked on Intuit production API keys.** Intuit requires an app assessment
-questionnaire before issuing them, even for a private app used only by your
-own company. Apply at the start of Phase 0 — approval timelines move, and
-this is the piece most likely to sit in someone else's queue. Development can
-proceed against a sandbox company in the meantime.
+**Intuit approved the app.** Intuit requires an app assessment questionnaire
+before issuing production keys, even for a private app used only by your own
+company — it was the long pole, as expected.
+
+**Production is not configured yet**: `/settings` on book.no2vance.com reports
+the QuickBooks environment variables missing. Set all four for Vercel's
+Production environment, redeploy (Vercel reads them at deploy time), then
+connect from `/settings`.
+
+`QUICKBOOKS_ENVIRONMENT` selects the API host, so the switch from sandbox to
+production is configuration, not code. A connection made in one environment
+while the app is configured for the other is rejected with an explicit
+"reconnect before continuing" rather than writing test invoices into the real
+books.
 
 - **OAuth 2.0 connect flow.** A one-time "Connect QuickBooks" screen in
   settings. Tokens go in a Supabase table, server-side only. Refresh tokens
@@ -368,8 +388,10 @@ an unfamiliar number, so this may never be an upgrade.
 
 ## Order of operations
 
-1. Start the Intuit production key application. Today.
-2. Phase 0 — money module, contract into the repo, Contract Sent status.
-3. Phase 1 — links and acceptance page, working without QuickBooks.
-4. Phase 2 — wire up QuickBooks whenever approval lands.
+1. ~~Start the Intuit production key application.~~ Approved.
+2. ~~Phase 0 — money module, contract into the repo, Contract Sent status.~~
+3. ~~Phase 1 — links and acceptance page, working without QuickBooks.~~
+4. Phase 2 — code complete. **Next:** set the four QuickBooks variables on
+   Vercel Production, redeploy, connect at `/settings`, then flip
+   `CONTRACT_VERSION` to `v2`.
 5. Phase 3 — email, once it's worth it.

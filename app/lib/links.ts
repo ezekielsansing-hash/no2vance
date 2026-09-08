@@ -137,9 +137,9 @@ export function contractProblems(event: EventRecord): string[] {
 
   const end = minutesOfDay(event.eventTimeEnd)
   const exit = minutesOfDay(event.exitTime)
-  if (end !== null && exit !== null && exit <= end) {
+  if (end !== null && exit !== null && exit < end) {
     problems.push(
-      'Contracted exit time must be after the event ends — overtime is charged from it',
+      'Contracted exit time is before the event ends — move it to the event end or later',
     )
   }
 
@@ -151,6 +151,25 @@ export function contractProblems(event: EventRecord): string[] {
   }
 
   return problems
+}
+
+/**
+ * Things worth a second look that are still legitimate to send. Unlike
+ * contractProblems these never block the link — the agreement they produce is
+ * coherent, it just commits the renter to something tighter than usual.
+ */
+export function contractWarnings(event: EventRecord): string[] {
+  const warnings: string[] = []
+
+  const end = minutesOfDay(event.eventTimeEnd)
+  const exit = minutesOfDay(event.exitTime)
+  if (end !== null && exit !== null && exit === end) {
+    warnings.push(
+      'Exit time is the same as the event end, so there is no contracted clean-up window — overtime starts the moment the event ends',
+    )
+  }
+
+  return warnings
 }
 
 // ---------------------------------------------------------------------------

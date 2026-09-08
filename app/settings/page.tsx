@@ -1,6 +1,6 @@
 import SiteHeader from '../components/SiteHeader'
 import { SUPPORT_EMAIL } from '../lib/legal'
-import { isQuickBooksConfigured } from '../lib/quickbooks/config'
+import { quickBooksConfigError } from '../lib/quickbooks/config'
 import { getConnectionStatus } from '../lib/quickbooks/oauth'
 import styles from './page.module.css'
 
@@ -19,7 +19,8 @@ export default async function SettingsPage({
 }: {
   searchParams: { quickbooks?: string; quickbooks_error?: string }
 }) {
-  const configured = isQuickBooksConfigured()
+  const configError = quickBooksConfigError()
+  const configured = configError === null
   const status = configured
     ? await getConnectionStatus()
     : ({ state: 'disconnected' } as const)
@@ -48,10 +49,16 @@ export default async function SettingsPage({
           <h2 className={styles.cardTitle}>QuickBooks</h2>
 
           {!configured ? (
-            <p className={styles.body}>
-              Not configured. Add the QuickBooks environment variables described
-              in <code>.env.example</code>, then restart the app.
-            </p>
+            <>
+              <p className={styles.body}>{configError}</p>
+              <p className={styles.body}>
+                Each variable is described in <code>.env.example</code>. On
+                Vercel, check that it is set for the <strong>Production</strong>
+                {' '}environment specifically, then redeploy — environment
+                variables are picked up at deploy time, so adding one to an
+                existing deployment changes nothing until it rebuilds.
+              </p>
+            </>
           ) : status.state === 'disconnected' ? (
             <>
               <p className={styles.body}>

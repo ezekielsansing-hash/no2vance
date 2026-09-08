@@ -22,17 +22,12 @@ import {
   STATUS_LABELS,
 } from '../../lib/events'
 import {
+  clampGuestCount,
+  MAX_OCCUPANCY,
   REQUIREMENT_OPTIONS,
   type RequirementKey,
   type Requirements,
 } from '../../lib/contract'
-import {
-  contractProblems,
-  createBookingLink,
-  loadLinkStatus,
-  missingForLink,
-  type BookingLink,
-} from '../../lib/links'
 import {
   defaultDeposit,
   formatBalanceDue,
@@ -60,26 +55,10 @@ export default function EditBookingPage() {
   const [vendorsOpen, setVendorsOpen] = useState(true)
   const [existingEvents, setExistingEvents] = useState<EventRecord[]>([])
   const [contractOpen, setContractOpen] = useState(false)
-  const [linkStatus, setLinkStatus] = useState<{
-    link: BookingLink
-    acceptedAt?: string
-  } | null>(null)
-  const [copying, setCopying] = useState(false)
-  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     loadCustomers().then(setCustomers)
   }, [])
-
-  useEffect(() => {
-    if (id) loadLinkStatus(id).then(setLinkStatus)
-  }, [id])
-
-  // Checked against the saved booking, not the form: a link freezes what's in
-  // the database, so unsaved edits shouldn't make the button look ready.
-  const savedEvent = existingEvents.find((e) => e.id === id)
-  const missingFields = savedEvent ? missingForLink(savedEvent) : []
-  const contractIssues = savedEvent ? contractProblems(savedEvent) : []
 
   function setRequirement(
     key: RequirementKey,
@@ -89,32 +68,6 @@ export default function EditBookingPage() {
       const next: Requirements = { ...prev.requirements, [key]: value }
       return { ...prev, requirements: next }
     })
-  }
-
-  async function handleCopyLink() {
-    if (!savedEvent) return
-    setCopying(true)
-    try {
-      let token = linkStatus?.link.token
-      if (!token) {
-        const created = await createBookingLink(savedEvent.id)
-        token = created.token
-        // The link works regardless; this only reports that the invoice part
-        // didn't, so the deposit can be chased another way.
-        if (created.warning) alert(created.warning)
-        const refreshed = await loadLinkStatus(savedEvent.id)
-        setLinkStatus(refreshed)
-      }
-      await navigator.clipboard.writeText(
-        `${window.location.origin}/accept/${token}`,
-      )
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2500)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Could not create the link')
-    } finally {
-      setCopying(false)
-    }
   }
 
   // Check for existing events on the selected date (excluding current event)
@@ -635,10 +588,14 @@ export default function EditBookingPage() {
                       <input
                         type="number"
                         min={0}
+                        max={MAX_OCCUPANCY}
                         className={styles.input}
                         value={form.estimatedGuestCount}
                         onChange={(e) =>
-                          handleChange('estimatedGuestCount', e.target.value)
+                          handleChange(
+                            'estimatedGuestCount',
+                            clampGuestCount(e.target.value),
+                          )
                         }
                       />
                     </label>
@@ -829,69 +786,6 @@ export default function EditBookingPage() {
                     </div>
                   </div>
 
-                  <div className={styles.contractLinkBox}>
-                    {linkStatus ? (
-                      <>
-                        <p className={styles.contractStatus}>
-                          {linkStatus.link.paidAt
-                            ? `Deposit paid ${new Date(linkStatus.link.paidAt).toLocaleDateString('en-US', { dateStyle: 'medium' })}`
-                            : linkStatus.acceptedAt
-                            ? `Contract accepted ${new Date(linkStatus.acceptedAt).toLocaleDateString('en-US', { dateStyle: 'medium' })} — deposit outstanding`
-                            : 'Link sent — not yet accepted'}
-                        </p>
-                        {linkStatus.link.docNumber && (
-                          <p className={styles.contractHint}>
-                            QuickBooks invoice #{linkStatus.link.docNumber}
-                          </p>
-                        )}
-                        {!linkStatus.link.invoiceId && (
-                          <p className={styles.contractMissing}>
-                            No QuickBooks invoice attached to this link.
-                          </p>
-                        )}
-                        <p className={styles.contractHint}>
-                          Terms were frozen when this link was created. Editing
-                          the booking above does not change what the customer
-                          sees — generate a new link for that.
-                        </p>
-                      </>
-                    ) : (
-                      <p className={styles.contractHint}>
-                        Generates a link the customer opens to read the agreement
-                        and accept it.
-                      </p>
-                    )}
-
-                    {missingFields.length > 0 && (
-                      <p className={styles.contractMissing}>
-                        Fill in first: {missingFields.join(', ')}
-                      </p>
-                    )}
-                    {contractIssues.map((issue) => (
-                      <p key={issue} className={styles.contractMissing}>
-                        {issue}
-                      </p>
-                    ))}
-
-                    <button
-                      type="button"
-                      className={styles.copyLinkButton}
-                      disabled={
-                        missingFields.length > 0 ||
-                        contractIssues.length > 0 ||
-                        copying
-                      }
-                      onClick={handleCopyLink}
-                    >
-                      {copying
-                        ? 'Creating…'
-                        : copied
-                        ? 'Copied to clipboard'
-                        : linkStatus
-                        ? 'Copy contract link'
-                        : 'Create contract link'}
-                    </button>
-                  </div>
                 </div>
               )}
             </div>

@@ -26,6 +26,7 @@ import {
   formatBalanceDue,
   formatCurrencyInput,
 } from '../lib/money'
+import { clampGuestCount, MAX_OCCUPANCY } from '../lib/contract'
 import { formatPhoneNumber, isValidPhone } from '../lib/phone'
 
 export default function NewBookingPage() {
@@ -510,10 +511,14 @@ export default function NewBookingPage() {
                       <input
                         type="number"
                         min={0}
+                        max={MAX_OCCUPANCY}
                         className={styles.input}
                         value={form.estimatedGuestCount}
                         onChange={(e) =>
-                          handleChange('estimatedGuestCount', e.target.value)
+                          handleChange(
+                            'estimatedGuestCount',
+                            clampGuestCount(e.target.value),
+                          )
                         }
                       />
                     </label>

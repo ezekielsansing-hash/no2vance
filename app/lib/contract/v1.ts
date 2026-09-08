@@ -16,8 +16,13 @@
  * Vercel without a filesystem read or a webpack loader.
  *
  * {{placeholders}} are filled at link-generation time. Never edit this file to
- * change terms for a new booking — add v2.ts and bump CONTRACT_VERSION, so
- * every past acceptance keeps pointing at the text that was actually agreed to.
+ * change terms for a new booking — add a new entry in CONTRACT_TEXT (a fresh
+ * vN.ts for a wording change) or in CONTRACT_TERMS (for an injected term like
+ * the payment methods) and bump CONTRACT_VERSION, so every past acceptance
+ * keeps pointing at the text that was actually agreed to.
+ *
+ * This body is shared by v1 and v2, which differ only in Section 3's
+ * {{paymentMethods}} — see the comments in index.ts.
  */
 export const CONTRACT_V1 = `# H. & S. Printing Co., Inc. dba No. 2 Vance
 ## Facility Rental Agreement
