@@ -1,6 +1,9 @@
 import SiteHeader from '../components/SiteHeader'
 import { SUPPORT_EMAIL } from '../lib/legal'
-import { quickBooksConfigError } from '../lib/quickbooks/config'
+import {
+  getQuickBooksConfig,
+  quickBooksConfigError,
+} from '../lib/quickbooks/config'
 import { getConnectionStatus } from '../lib/quickbooks/oauth'
 import styles from './page.module.css'
 
@@ -24,6 +27,21 @@ export default async function SettingsPage({
   const status = configured
     ? await getConnectionStatus()
     : ({ state: 'disconnected' } as const)
+
+  /**
+   * The company a connection was made against and the environment this
+   * deployment is configured for can disagree — swapping the env vars from
+   * sandbox to production leaves the old connection row in place. Every
+   * invoice call then fails, so the mismatch belongs on this page rather than
+   * only in the error text of a link that didn't invoice.
+   */
+  const configuredEnvironment = configured
+    ? getQuickBooksConfig().environment
+    : null
+  const mismatched =
+    status.state !== 'disconnected' &&
+    configuredEnvironment !== null &&
+    status.environment !== configuredEnvironment
 
   return (
     <div className={styles.page}>
@@ -84,7 +102,10 @@ export default async function SettingsPage({
                 </div>
                 <div>
                   <dt className={styles.label}>Environment</dt>
-                  <dd className={styles.value}>{status.environment}</dd>
+                  <dd className={styles.value}>
+                    {status.environment}
+                    {mismatched && ` — app configured for ${configuredEnvironment}`}
+                  </dd>
                 </div>
                 <div>
                   <dt className={styles.label}>Company (realm)</dt>
@@ -96,7 +117,19 @@ export default async function SettingsPage({
                 </div>
               </dl>
 
-              {status.state !== 'connected' && (
+              {mismatched && (
+                <p className={styles.warning}>
+                  This connection is to the <strong>{status.environment}</strong>
+                  {' '}company, but the app is configured for{' '}
+                  <strong>{configuredEnvironment}</strong>. Invoices will fail
+                  until you reconnect and choose the{' '}
+                  {configuredEnvironment === 'production'
+                    ? 'real company'
+                    : 'sandbox company'}.
+                </p>
+              )}
+
+              {!mismatched && status.state !== 'connected' && (
                 <p className={styles.warning}>
                   QuickBooks requires re-authorizing periodically. Until you
                   reconnect, invoices cannot be created.
