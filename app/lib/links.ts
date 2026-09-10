@@ -1,6 +1,6 @@
 import type { BookingContractFields, Requirements } from './contract'
-import { MAX_OCCUPANCY } from './contract'
-import { formatCurrency } from './money'
+import { BALANCE_DUE_DAYS_BEFORE, MAX_OCCUPANCY } from './contract'
+import { formatCurrency, parseAmount } from './money'
 import type { EventRecord } from './events'
 import { getSupabase } from './supabase'
 
@@ -17,6 +17,13 @@ export type BookingLink = {
   docNumber?: string
   paymentLink?: string
   paidAt?: string
+  /** The second invoice — Section 3's balance. Raised separately, later. */
+  balanceInvoiceId?: string
+  balanceDocNumber?: string
+  balancePaymentLink?: string
+  balanceAmount?: string
+  balanceDueOn?: string
+  balancePaidAt?: string
 }
 
 export type ContractAcceptance = {
@@ -70,6 +77,47 @@ export function formatContractTime(value: string): string {
   const suffix = hours >= 12 ? 'PM' : 'AM'
   const display = hours % 12 === 0 ? 12 : hours % 12
   return `${display}:${match[2]} ${suffix}`
+}
+
+/** Today as an ISO date, in the server's own zone. */
+function todayIso(now: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+}
+
+/**
+ * When the balance falls due: seven days before the first event date.
+ *
+ * Clamped to today rather than allowed into the past, because Section 3 makes
+ * a booking taken inside that window payable in full at signing — a due date
+ * of last Tuesday would be both wrong and unpayable-on-time by construction.
+ *
+ * Arithmetic runs in UTC on a hand-parsed date, the same dodge
+ * formatContractDate uses: `new Date("2027-05-29")` is midnight UTC, which is
+ * the day before in Memphis.
+ */
+export function balanceDueDate(eventDate: string, now: Date = new Date()): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eventDate.trim())
+  if (!match) return ''
+  const [, year, month, day] = match
+  const due = new Date(
+    Date.UTC(parseInt(year, 10), parseInt(month, 10) - 1, parseInt(day, 10)),
+  )
+  due.setUTCDate(due.getUTCDate() - BALANCE_DUE_DAYS_BEFORE)
+  const iso = due.toISOString().slice(0, 10)
+  const today = todayIso(now)
+  return iso < today ? today : iso
+}
+
+/**
+ * What the balance invoice should be for.
+ *
+ * Taken from the frozen contract fields, not from the booking's current rate
+ * and deposit: the renter agreed to specific numbers, and an edit made to the
+ * booking afterwards doesn't change what they owe under the signed agreement.
+ */
+export function balanceOwed(fields: BookingContractFields): number {
+  return parseAmount(fields.rentalRate) - parseAmount(fields.depositAmount)
 }
 
 export function bookingContractFields(event: EventRecord): BookingContractFields {
@@ -191,6 +239,12 @@ function rowToLink(row: LinkRow): BookingLink {
     docNumber: (row.qbo_doc_number as string) || undefined,
     paymentLink: (row.qbo_payment_link as string) || undefined,
     paidAt: (row.paid_at as string) || undefined,
+    balanceInvoiceId: (row.qbo_balance_invoice_id as string) || undefined,
+    balanceDocNumber: (row.qbo_balance_doc_number as string) || undefined,
+    balancePaymentLink: (row.qbo_balance_payment_link as string) || undefined,
+    balanceAmount: (row.balance_amount as string) || undefined,
+    balanceDueOn: (row.balance_due_on as string) || undefined,
+    balancePaidAt: (row.balance_paid_at as string) || undefined,
   }
 }
 
@@ -243,4 +297,26 @@ export async function loadLinkStatus(
     .order('accepted_at', { ascending: false })
     .limit(1)
   return { link, acceptedAt: (acceptances ?? [])[0]?.accepted_at as string }
+}
+
+/**
+ * Raise the balance invoice against an existing link.
+ *
+ * Separate from link creation because it happens weeks or months later, on a
+ * booking that is already accepted and reserved. Returns the same shape when
+ * called twice — the invoice is only ever created once per link.
+ */
+export async function createBalanceInvoice(
+  token: string,
+): Promise<{ docNumber?: string; alreadyExisted: boolean }> {
+  const response = await fetch('/api/links/balance', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  })
+  const data = await response.json()
+  if (!response.ok) {
+    throw new Error(data.error || 'Could not create the balance invoice')
+  }
+  return data as { docNumber?: string; alreadyExisted: boolean }
 }

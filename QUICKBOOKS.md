@@ -365,6 +365,87 @@ have paid and the transfer is in flight — but it means a booking can flip to
 Confirmed a few days before the deposit appears in the Truist account. Worth
 knowing before that gap looks like a bug.
 
+### What the first live link generation caught
+
+Two things, both found on the first real attempt against the company file.
+
+**Names are one namespace.** QuickBooks keeps customers, vendors, and
+employees in a single list of names — a name used by any of the three cannot
+be used by the other two. `findOrCreateCustomer` looks for an active customer
+and creates one when there isn't one, so a renter who is already an employee
+or vendor fails the create with Intuit's `6240` duplicate-name error. The
+first test booking hit exactly that: an *employee* named "Anna Barnett"
+already existed. Resolving it means renaming someone in the books, which is a
+decision about the venue's records, so the code names the record standing in
+the way instead of inventing a display name.
+
+**The income account is named, not guessed.** `findIncomeAccountRef` used to
+take the first active Income account Intuit returned, which on these books is
+*Billable Expense Income* — every deposit would have been filed there. It now
+looks up `Event Income` (id 164) by name and fails loudly if it's missing.
+This only matters when the `Facility Rental Deposit` item is created, which
+happens once, so it was worth catching before the first invoice rather than
+after.
+
+**Intuit's fault text now reaches the error message.** Every validation
+failure is a 400 and the body carries the only useful part — the code and the
+Detail line. `describeQuickBooksFault` pulls it out, so the alert says what
+was wrong instead of just naming the endpoint that failed.
+
+### Phase 2.5 — The balance invoice — BUILT
+
+Section 3 splits the money in two, so the app does too. The deposit invoice
+rides along with the contract link; the balance is a second invoice raised from
+the booking detail, weeks or months later, with a due date seven days before
+the event (`BALANCE_DUE_DAYS_BEFORE`, clamped to today for a booking taken
+inside that window).
+
+Both invoices hang off the same `booking_links` row in their own columns
+(`005-balance-invoice.sql`). That separation is load-bearing: the payment
+webhook confirms a booking when the *deposit* lands, and a balance arriving
+months later must not re-confirm it or restamp `date_of_deposit`. `settleInvoice`
+now looks the invoice up in both columns and branches.
+
+The amount comes from the **frozen contract fields**, not the booking's current
+rate — the renter owes what the signed agreement says, and an edit made
+afterwards doesn't change that. A rate left as free text like "TBD" parses to
+zero and produces a negative balance; that case is named explicitly rather than
+reported as "the deposit covers the full rate."
+
+The renter pays it on the link they already hold. `/accept/[token]` gained a
+fourth state: deposit paid and balance outstanding, with its own Pay button.
+
+**Not covered, deliberately.** The Section 14 refundable damage / cleaning
+deposit is "due with the balance" but isn't on this invoice — it isn't income
+the venue keeps, so it needs its own account decision first. Post-event charges
+under Additional Charges are a third invoice, raised in QuickBooks by hand.
+
+### Two things the live books taught us
+
+**A BillEmail is what mints the payment link.** `include=invoiceLink` returns
+nothing unless the invoice carries a `BillEmail` — checked across eight open
+invoices in the company file, four with an address and four without, and the
+correlation is exact (`EmailStatus` makes no difference; the link appears while
+the invoice is still unsent). Since `customers.email` is optional and mostly
+empty, the first deposit invoice came back with no payment link at all, which
+would have shown the renter a contract and no way to pay it.
+
+Invoices now always carry a BillEmail: the customer's if there is one, and
+`SUPPORT_EMAIL` otherwise. That's what the venue's own books already do —
+invoices 1053 and 1050 use no2vance@gmail.com for exactly this reason. Setting
+the field sends nothing; sending needs a separate `send` call the app never
+makes.
+
+**API-created invoices come out unnumbered.** The company has *Custom
+transaction numbers* switched on (`SalesFormsPrefs.CustomTxnNumbers: true`),
+which stops QuickBooks auto-assigning a `DocNumber` to anything the API
+creates. Invoices raised inside QuickBooks are numbered normally (…1100, 1105,
+1132); invoice 2712, raised by the app, has no number at all. Either turn that
+setting off in QuickBooks so it numbers them again, or have the app supply a
+`DocNumber` — which means owning the sequence and not colliding with the
+numbers QuickBooks hands out. Until then the UI says "invoice raised" instead
+of printing an empty `#`.
+
 **Redirect URIs to register** on the Intuit app's settings page:
 
 - `http://localhost:3000/api/quickbooks/callback` (development)

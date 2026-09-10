@@ -47,25 +47,45 @@ async function invoiceIdsForPayment(paymentId: string): Promise<string[]> {
 }
 
 /**
- * Confirm the booking behind an invoice, if that invoice is now fully paid.
+ * Record a payment against whichever of a link's two invoices it belongs to.
  *
- * Balance is re-read from QuickBooks rather than trusted from the webhook
- * payload: the notification says something changed, not what the total is, and
- * a partial payment must not confirm a booking.
+ * A link carries the deposit invoice and, later, the balance invoice. They are
+ * separate columns precisely so this can tell them apart: the deposit is what
+ * confirms a booking, and a balance landing months afterwards must not
+ * re-confirm it or restamp the deposit date.
+ *
+ * The amount outstanding is re-read from QuickBooks rather than trusted from
+ * the webhook payload: the notification says something changed, not what the
+ * total is, and a partial payment must not settle anything.
  */
 async function settleInvoice(invoiceId: string): Promise<void> {
   const supabase = getServiceSupabase()
-  const { data: link } = await supabase
+
+  const { data: depositLink } = await supabase
     .from('booking_links')
     .select('token, event_id, paid_at')
     .eq('qbo_invoice_id', invoiceId)
     .maybeSingle()
-  if (!link) return
+  if (depositLink) return settleDeposit(depositLink, invoiceId)
+
+  const { data: balanceLink } = await supabase
+    .from('booking_links')
+    .select('token, balance_paid_at')
+    .eq('qbo_balance_invoice_id', invoiceId)
+    .maybeSingle()
+  if (balanceLink) return settleBalance(balanceLink, invoiceId)
+}
+
+async function settleDeposit(
+  link: { token: unknown; event_id: unknown; paid_at: unknown },
+  invoiceId: string,
+): Promise<void> {
   if (link.paid_at) return // already handled; webhooks can repeat
 
   const { balance } = await getInvoiceBalance(invoiceId)
   if (balance > 0) return
 
+  const supabase = getServiceSupabase()
   const paidAt = new Date().toISOString()
   await supabase
     .from('booking_links')
@@ -89,6 +109,26 @@ async function settleInvoice(invoiceId: string): Promise<void> {
         (event?.date_of_deposit as string) || paidAt.slice(0, 10),
     })
     .eq('id', link.event_id)
+}
+
+/**
+ * The balance landing changes no status: the booking was already confirmed
+ * when the deposit arrived, and confirming it twice would move nothing except
+ * the timestamps Analytics reads. All that's recorded is that it's paid.
+ */
+async function settleBalance(
+  link: { token: unknown; balance_paid_at: unknown },
+  invoiceId: string,
+): Promise<void> {
+  if (link.balance_paid_at) return
+
+  const { balance } = await getInvoiceBalance(invoiceId)
+  if (balance > 0) return
+
+  await getServiceSupabase()
+    .from('booking_links')
+    .update({ balance_paid_at: new Date().toISOString() })
+    .eq('token', link.token)
 }
 
 export async function POST(request: Request) {

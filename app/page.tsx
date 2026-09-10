@@ -20,8 +20,11 @@ import {
 } from './lib/events'
 import { formatBalanceDue, formatCurrency } from './lib/money'
 import {
+  balanceDueDate,
+  balanceOwed,
   contractProblems,
   contractWarnings,
+  createBalanceInvoice,
   createBookingLink,
   loadLinkStatus,
   missingForLink,
@@ -63,6 +66,7 @@ export default function Home() {
   } | null>(null)
   const [linkBusy, setLinkBusy] = useState(false)
   const [linkCopied, setLinkCopied] = useState(false)
+  const [balanceBusy, setBalanceBusy] = useState(false)
   const [statusFilter, setStatusFilter] = useState<Set<string>>(new Set(['prospect', 'pending', 'confirmed']))
 
   const [showMigrateBanner, setShowMigrateBanner] = useState(false)
@@ -174,6 +178,21 @@ export default function Home() {
   const contractBlocked =
     missingForContract.length > 0 || contractIssues.length > 0
 
+  // The balance is only real once there is a signed agreement naming it: the
+  // amount comes from the frozen contract fields, not from the booking's
+  // current rate, so an edit made after signing can't quietly change it.
+  const balanceInvoiceOwed = contractLink
+    ? balanceOwed(contractLink.link.bookingFields)
+    : 0
+  const balanceDueLabel = activeEvent?.eventDate
+    ? formatDate(balanceDueDate(activeEvent.eventDate))
+    : ''
+  const canInvoiceBalance =
+    !!contractLink &&
+    !contractLink.link.balanceInvoiceId &&
+    !!contractLink.acceptedAt &&
+    balanceInvoiceOwed > 0
+
   async function handleContractLink() {
     if (!activeEvent) return
     setLinkBusy(true)
@@ -197,6 +216,44 @@ export default function Home() {
     }
   }
 
+
+  /**
+   * The second invoice. Deliberately a button rather than something that fires
+   * on a schedule: the balance is due seven days out, but when to actually ask
+   * for it is a judgment call about the particular renter.
+   */
+  async function handleBalanceInvoice() {
+    if (!activeEvent || !contractLink) return
+    const owed = balanceOwed(contractLink.link.bookingFields)
+    const due = balanceDueLabel
+    if (
+      !window.confirm(
+        `Invoice ${formatCurrency(owed)} to ${getCustomerName(activeEvent)}` +
+          (due ? `, due ${due}` : '') +
+          `?\n\nThey'll see it on the same link they already have.`,
+      )
+    ) {
+      return
+    }
+    setBalanceBusy(true)
+    try {
+      const created = await createBalanceInvoice(contractLink.link.token)
+      if (created.alreadyExisted) {
+        alert(
+          `A balance invoice already exists for this booking` +
+            (created.docNumber ? ` (#${created.docNumber})` : '') +
+            '.',
+        )
+      }
+      setContractLink(await loadLinkStatus(activeEvent.id))
+    } catch (err) {
+      alert(
+        err instanceof Error ? err.message : 'Could not create the balance invoice',
+      )
+    } finally {
+      setBalanceBusy(false)
+    }
+  }
 
   async function handleDelete(id: string) {
     const event = events.find((e) => e.id === id)
@@ -770,9 +827,12 @@ export default function Home() {
                             View signed contract
                           </Link>
                         )}
-                        {contractLink?.link.docNumber && (
+                        {contractLink?.link.invoiceId && (
                           <span className={styles.contractNote}>
-                            QuickBooks invoice #{contractLink.link.docNumber}
+                            {contractLink.link.docNumber
+                              ? `Deposit invoice #${contractLink.link.docNumber}`
+                              : 'Deposit invoice raised'}
+                            {contractLink.link.paidAt ? ' — paid' : ''}
                           </span>
                         )}
                         {missingForContract.length > 0 && (
@@ -802,6 +862,75 @@ export default function Home() {
                         )}
                       </dd>
                     </div>
+                    {contractLink && (
+                      <div>
+                        <dt>Balance Invoice</dt>
+                        <dd>
+                          {balanceInvoiceOwed <= 0 ? (
+                            /* Nothing to invoice. Said out loud rather than
+                               hidden, because a missing button looks like a
+                               bug when you're expecting one. */
+                            <span className={styles.contractNote}>
+                              {balanceInvoiceOwed === 0
+                                ? 'None — the deposit covers the full rate'
+                                : `Rate on the signed agreement (${
+                                    contractLink.link.bookingFields.rentalRate || 'blank'
+                                  }) is below the deposit`}
+                            </span>
+                          ) : contractLink.link.balanceInvoiceId ? (
+                            <>
+                              <span className={styles.contractNote}>
+                                {contractLink.link.balanceAmount ||
+                                  formatCurrency(balanceInvoiceOwed)}
+                                {contractLink.link.balanceDocNumber
+                                  ? ` — invoice #${contractLink.link.balanceDocNumber}`
+                                  : ' — invoice raised'}
+                              </span>
+                              <span className={styles.contractNote}>
+                                {contractLink.link.balancePaidAt
+                                  ? `Paid ${formatDate(
+                                      contractLink.link.balancePaidAt.slice(0, 10),
+                                    )}`
+                                  : contractLink.link.balanceDueOn
+                                  ? `Due ${formatDate(contractLink.link.balanceDueOn)}`
+                                  : 'Sent'}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                type="button"
+                                className={styles.contractLinkButton}
+                                disabled={!canInvoiceBalance || balanceBusy}
+                                title={
+                                  !contractLink.acceptedAt
+                                    ? 'The agreement has to be accepted first'
+                                    : `Due ${balanceDueLabel}`
+                                }
+                                onClick={handleBalanceInvoice}
+                              >
+                                {balanceBusy
+                                  ? 'Working…'
+                                  : `Invoice balance ${formatCurrency(
+                                      balanceInvoiceOwed,
+                                    )}`}
+                              </button>
+                              <span className={styles.contractNote}>
+                                {contractLink.acceptedAt
+                                  ? `Due ${balanceDueLabel} — seven days before the event`
+                                  : 'Available once the agreement is accepted'}
+                              </span>
+                              {contractLink.acceptedAt &&
+                                !contractLink.link.paidAt && (
+                                  <span className={styles.contractNote}>
+                                    Deposit isn&apos;t marked paid yet
+                                  </span>
+                                )}
+                            </>
+                          )}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Photo Folder</dt>
                       <dd>
