@@ -96,6 +96,36 @@ Once that's done, a booking with its event details, rate, and deposit filled in
 gets a **Create contract link** button in the Contract section. The link works
 for anyone who opens it, so treat it like a private share link.
 
+## 7. The balance invoice (one time)
+
+Section 3 of the agreement splits the rental in two: the deposit reserves the
+date, and the balance is due no later than seven days before the event. The
+deposit invoice goes out with the contract link; the balance is a second
+invoice you raise later, from the same booking.
+
+1. **Run the migration first.** Supabase dashboard → **SQL Editor → New
+   query**, paste the contents of
+   [`supabase/005-balance-invoice.sql`](supabase/005-balance-invoice.sql), Run.
+   Safe to run twice.
+
+   **Do this before deploying the code**, not after. The acceptance page asks
+   for the new columns by name, so between a deploy and the migration every
+   contract link would show "Link not found" to the renter.
+
+2. That's it — no new environment variables. Once a contract link has been
+   accepted, its booking shows a **Balance Invoice** row with the amount and
+   the date it falls due.
+
+Pressing the button raises the invoice in QuickBooks and puts a **Pay balance**
+button on the link the renter already has. Nothing is sent automatically and
+nothing fires on a schedule: you decide when to ask.
+
+Two things it deliberately does not cover. The **refundable damage / cleaning
+deposit** in Section 14 is "due with the balance" but isn't on this invoice —
+it needs its own account in QuickBooks, since it isn't income the venue keeps.
+And **post-event charges** (overtime, damage, extra cleaning) are a third
+invoice under Section 3's Additional Charges, raised in QuickBooks by hand.
+
 ## Ongoing: backups
 
 Until you upgrade Supabase to Pro, there are no automatic database backups.

@@ -46,6 +46,14 @@ export const CONTRACT_TEXT: Record<string, string> = {
 export const MAX_OCCUPANCY = 75
 
 /**
+ * How many days before the event the balance falls due. Section 3 states it
+ * twice over: the balance is due "no later than seven (7) days before the
+ * first Event Date," and a reservation made inside that window is payable in
+ * full at signing. Must match the number written into the contract text.
+ */
+export const BALANCE_DUE_DAYS_BEFORE = 7
+
+/**
  * Keeps a guest-count input at or below the fire-code limit as it is typed.
  * The `max` attribute alone only constrains the spinner, so a pasted or typed
  * 150 would still reach the form. Blank stays blank so the field can be

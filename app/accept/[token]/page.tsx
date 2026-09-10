@@ -7,6 +7,24 @@ import styles from './accept.module.css'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * "2027-05-22" -> "May 22, 2027". Hand-parsed: a plain date string read by
+ * `new Date` is midnight UTC, which renders as the day before in Memphis —
+ * and this one is a deadline, so being a day early is the wrong direction.
+ */
+function formatDueDate(value: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value.trim())
+  if (!match) return value
+  const [, year, month, day] = match
+  const months = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December',
+  ]
+  const name = months[parseInt(month, 10) - 1]
+  if (!name) return value
+  return `${name} ${parseInt(day, 10)}, ${year}`
+}
+
 function Shell({ children }: { children: React.ReactNode }) {
   return (
     <main className={styles.page}>
@@ -36,7 +54,8 @@ export default async function AcceptPage({
 
   const { data: link } = await supabase
     .from('booking_links')
-    .select('token, contract_version, booking_fields, deposit_amount, voided_at, qbo_payment_link, paid_at')
+    // eslint-disable-next-line max-len -- supabase-js infers the row type from this literal; splitting it loses every field's type
+    .select('token, contract_version, booking_fields, deposit_amount, voided_at, qbo_payment_link, paid_at, qbo_balance_payment_link, balance_amount, balance_due_on, balance_paid_at')
     .eq('token', params.token)
     .maybeSingle()
 
@@ -97,7 +116,37 @@ export default async function AcceptPage({
               )}
             </p>
           </div>
-          {link.paid_at ? (
+          {link.balance_paid_at ? (
+            <div className={styles.paidBox}>
+              <p className={styles.paidTitle}>Paid in full — thank you</p>
+              <p className={styles.payBody}>
+                Your deposit and balance are both received. Nothing further is
+                owed for the rental itself.
+              </p>
+            </div>
+          ) : link.paid_at && link.qbo_balance_payment_link ? (
+            /* The balance invoice has gone out. The renter already has this
+               link, so it becomes the place to pay rather than a new one. */
+            <div className={styles.payBox}>
+              <p className={styles.payTitle}>
+                Balance due: {link.balance_amount as string}
+              </p>
+              <p className={styles.payBody}>
+                Your deposit is received and your date is reserved. The
+                remaining balance is due
+                {link.balance_due_on
+                  ? ` by ${formatDueDate(link.balance_due_on as string)}`
+                  : ' seven days before your event'}
+                .
+              </p>
+              <a
+                className={styles.payButton}
+                href={link.qbo_balance_payment_link as string}
+              >
+                Pay balance
+              </a>
+            </div>
+          ) : link.paid_at ? (
             <div className={styles.paidBox}>
               <p className={styles.paidTitle}>Deposit received — your date is reserved</p>
               <p className={styles.payBody}>
