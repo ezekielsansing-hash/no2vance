@@ -19,6 +19,7 @@ import {
   STATUS_PILL_CLASS,
 } from './lib/events'
 import { formatBalanceDue, formatCurrency } from './lib/money'
+import { googleCalendarUrl } from './lib/calendar-link'
 import {
   balanceDueDate,
   balanceOwed,
@@ -172,6 +173,9 @@ export default function Home() {
     }
   }, [activeId])
 
+  const calendarUrl = activeEvent
+    ? googleCalendarUrl(activeEvent, activeEvent.id)
+    : null
   const missingForContract = activeEvent ? missingForLink(activeEvent) : []
   const contractIssues = activeEvent ? contractProblems(activeEvent) : []
   const contractNotices = activeEvent ? contractWarnings(activeEvent) : []
@@ -720,10 +724,23 @@ export default function Home() {
                     </div>
                     <div>
                       <dt>Date of Event</dt>
-                      <dd>
-                        {activeEvent.eventDate
-                          ? formatDate(activeEvent.eventDate)
-                          : '—'}
+                      <dd className={styles.dateWithAction}>
+                        <span>
+                          {activeEvent.eventDate
+                            ? formatDate(activeEvent.eventDate)
+                            : '—'}
+                        </span>
+                        {calendarUrl && (
+                          <a
+                            className={styles.miniAction}
+                            href={calendarUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            title="Opens a prefilled Google Calendar event — choose the calendar and save"
+                          >
+                            Add to Calendar
+                          </a>
+                        )}
                       </dd>
                     </div>
                     <div>

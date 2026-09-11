@@ -35,6 +35,7 @@ import {
   formatCurrencyInput,
 } from '../../lib/money'
 import { formatPhoneNumber, isValidPhone } from '../../lib/phone'
+import { googleCalendarUrl } from '../../lib/calendar-link'
 
 export default function EditBookingPage() {
   const params = useParams()
@@ -42,6 +43,9 @@ export default function EditBookingPage() {
   const id = typeof params.id === 'string' ? params.id : Array.isArray(params.id) ? params.id[0] : ''
 
   const [form, setForm] = useState<EventFormState>(EMPTY_FORM)
+  // Built from the form rather than the saved record, so the link carries what
+  // is on screen. Null when there is no date to place it on.
+  const calendarUrl = googleCalendarUrl(form, id)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [depositTouched, setDepositTouched] = useState(true)
   const [loaded, setLoaded] = useState(false)
@@ -657,6 +661,32 @@ export default function EditBookingPage() {
                         Overtime is charged from this time
                       </span>
                     </label>
+                  </div>
+
+                  <div className={styles.fieldRow}>
+                    <div className={styles.field}>
+                      {calendarUrl ? (
+                        <>
+                          <a
+                            className={`${styles.button} ${styles.ghostButton}`}
+                            href={calendarUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            Add to Google Calendar
+                          </a>
+                          <span className={styles.hintText}>
+                            Opens a prefilled event — choose the calendar and
+                            save. Unsaved edits above are included.
+                          </span>
+                        </>
+                      ) : (
+                        <span className={styles.hintText}>
+                          Set an event date to add this booking to Google
+                          Calendar.
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className={styles.fieldRow}>
