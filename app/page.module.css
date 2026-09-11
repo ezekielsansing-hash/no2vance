@@ -755,6 +755,9 @@
 
 .detailActions {
   display: flex;
+  /* A prospect carries the most buttons — two status changes plus calendar,
+     edit and delete — which is more than fits one line in a narrow panel. */
+  flex-wrap: wrap;
   gap: 0.35rem;
 }
 
@@ -1103,6 +1106,38 @@
   background: var(--ink-faint);
   border-color: var(--ink-faint);
   cursor: not-allowed;
+}
+
+/* A detail value with a small action beside it. Wraps rather than squeezing
+   the value, since the panel is narrow at smaller widths. */
+.dateWithAction {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+/* Secondary action, sized to sit on a line of detail text rather than to
+   compete with the status buttons above it. */
+.miniAction {
+  display: inline-block;
+  border: 2px solid var(--ink);
+  border-radius: 0;
+  background: var(--card);
+  color: var(--ink);
+  font-family: var(--display);
+  font-weight: 600;
+  font-size: 0.62rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 0.1rem 0.38rem;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background-color 120ms ease;
+}
+
+.miniAction:hover {
+  background: var(--wash);
 }
 
 .contractNote {

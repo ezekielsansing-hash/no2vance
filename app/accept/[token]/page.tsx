@@ -80,6 +80,13 @@ export default async function AcceptPage({
     .limit(1)
   const acceptance = (acceptances ?? [])[0]
 
+  // What is actually outstanding. Both invoices can be open at the same time,
+  // so these are three independent facts rather than one sequence.
+  const depositPaid = !!link.paid_at
+  const balancePaid = !!link.balance_paid_at
+  const balanceLink = link.qbo_balance_payment_link as string | null
+  const balanceOpen = !!balanceLink && !balancePaid
+
   const fields = link.booking_fields as BookingContractFields
   const version = link.contract_version as string
 
@@ -116,7 +123,7 @@ export default async function AcceptPage({
               )}
             </p>
           </div>
-          {link.balance_paid_at ? (
+          {depositPaid && balancePaid ? (
             <div className={styles.paidBox}>
               <p className={styles.paidTitle}>Paid in full — thank you</p>
               <p className={styles.payBody}>
@@ -124,7 +131,7 @@ export default async function AcceptPage({
                 owed for the rental itself.
               </p>
             </div>
-          ) : link.paid_at && link.qbo_balance_payment_link ? (
+          ) : depositPaid && balanceOpen ? (
             /* The balance invoice has gone out. The renter already has this
                link, so it becomes the place to pay rather than a new one. */
             <div className={styles.payBox}>
@@ -133,45 +140,58 @@ export default async function AcceptPage({
               </p>
               <p className={styles.payBody}>
                 Your deposit is received and your date is reserved. The
-                remaining balance is due
+                remaining balance is{' '}
                 {link.balance_due_on
-                  ? ` by ${formatDueDate(link.balance_due_on as string)}`
-                  : ' seven days before your event'}
-                .
+                  ? `due by ${formatDueDate(link.balance_due_on as string)}.`
+                  : 'due seven days before your event.'}
               </p>
-              <a
-                className={styles.payButton}
-                href={link.qbo_balance_payment_link as string}
-              >
+              <a className={styles.payButton} href={balanceLink as string}>
                 Pay balance
               </a>
             </div>
-          ) : link.paid_at ? (
+          ) : depositPaid ? (
             <div className={styles.paidBox}>
               <p className={styles.paidTitle}>Deposit received — your date is reserved</p>
               <p className={styles.payBody}>
                 Paid{' '}
-                {new Date(link.paid_at as string).toLocaleDateString('en-US', {
+                {`${new Date(link.paid_at as string).toLocaleDateString('en-US', {
                   dateStyle: 'long',
-                })}
-                . Nothing further is needed right now; the balance is due seven
+                })}.`}{' '}
+                Nothing further is needed right now; the balance is due seven
                 days before your event.
               </p>
             </div>
           ) : (
             <div className={styles.payBox}>
               <p className={styles.payTitle}>
-                Deposit due: {link.deposit_amount as string}
+                {balanceOpen
+                  ? `Due now: ${link.deposit_amount as string} deposit`
+                  : `Deposit due: ${link.deposit_amount as string}`}
               </p>
               <p className={styles.payBody}>
                 Your date is not reserved until the deposit is received.
               </p>
+              {/* Both invoices open at once is a real case, not just a
+                  mistake: a booking taken inside seven days of the event is
+                  payable in full at signing. Intuit's payment page lists every
+                  open invoice for the customer, so saying only "pay deposit"
+                  here promises less than the button actually delivers. */}
+              {balanceOpen && (
+                <p className={styles.payBody}>
+                  Your remaining balance of {link.balance_amount as string} is
+                  also on the payment page,{' '}
+                  {link.balance_due_on
+                    ? `due by ${formatDueDate(link.balance_due_on as string)}.`
+                    : 'due seven days before your event.'}{' '}
+                  You can pay both together or just the deposit for now.
+                </p>
+              )}
               {link.qbo_payment_link ? (
                 <a
                   className={styles.payButton}
                   href={link.qbo_payment_link as string}
                 >
-                  Pay deposit
+                  {balanceOpen ? 'Pay now' : 'Pay deposit'}
                 </a>
               ) : (
                 <p className={styles.payBody}>
