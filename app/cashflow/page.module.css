@@ -1,0 +1,232 @@
+/* Matches the Analytics page: ink borders, offset shadows, Jost labels. */
+
+.page {
+  min-height: 100vh;
+  padding: 2.5rem 1.5rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.shell {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.pageTitle {
+  font-family: var(--display);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  margin: 0;
+}
+
+.pageNote {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.emptyState {
+  font-size: 0.85rem;
+  color: var(--ink-soft);
+  padding: 3rem 2rem;
+  border: 2px dashed var(--ink);
+  background: var(--card);
+  text-align: center;
+}
+
+.metricsRow {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.metricCard {
+  flex: 1;
+  min-width: 150px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.metricGood {
+  background: var(--teal-soft);
+}
+
+.metricAlert {
+  background: var(--red-soft);
+}
+
+.metricValue {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.metricLabel {
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chartCard,
+.card {
+  background: var(--card);
+  border: 2px solid var(--ink);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.chartTitle,
+.cardTitle {
+  font-family: var(--display);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+  margin: 0 0 0.75rem 0;
+}
+
+.cardTitle {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.chartTall {
+  width: 100%;
+  height: 300px;
+}
+
+.chartNote {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  margin: 0.75rem 0 0;
+  line-height: 1.45;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.grid .card {
+  margin-bottom: 0;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+.card .table {
+  margin-top: 0;
+}
+
+.table th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-soft);
+  padding: 0.35rem 0.4rem;
+  border-bottom: 1px solid var(--ink);
+}
+
+.table td {
+  padding: 0.45rem 0.4rem;
+  border-bottom: 1px solid var(--wash);
+  vertical-align: top;
+}
+
+.table tr:last-child td {
+  border-bottom: none;
+}
+
+.num {
+  text-align: right !important;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.subtle {
+  color: var(--ink-faint);
+  font-size: 0.76rem;
+}
+
+.rowLink {
+  color: var(--ink);
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 1px solid var(--ink-faint);
+}
+
+.rowLink:hover {
+  border-bottom-color: var(--ink);
+}
+
+.emptyText {
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+.badge {
+  display: inline-block;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: 1.5px solid currentColor;
+  white-space: nowrap;
+}
+
+.badge_met,
+.badge_onPace {
+  color: var(--teal-ink);
+  background: var(--teal-soft);
+}
+
+.badge_missed {
+  color: var(--red-ink);
+  background: var(--red-soft);
+}
+
+.badge_behind {
+  color: var(--yellow-ink);
+  background: var(--yellow-soft);
+}
+
+.badge_neutral {
+  color: var(--ink-soft);
+  background: var(--wash);
+}
+
+@media (max-width: 760px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .page {
+    padding: 1.5rem 1rem;
+  }
+}

@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Bookings' },
   { href: '/customers', label: 'Customers' },
   { href: '/analytics', label: 'Analytics' },
+  { href: '/cashflow', label: 'Cash Flow' },
   { href: '/vendors', label: 'Vendors' },
   { href: '/import', label: 'Import' },
   { href: '/settings', label: 'Settings' },
