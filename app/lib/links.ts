@@ -300,6 +300,23 @@ export async function loadLinkStatus(
 }
 
 /**
+ * Every contract link, voided or not. The Cash Flow page needs them all to
+ * see which payments QuickBooks has recorded; it picks the one that matters
+ * per booking itself (see primaryLinks in cashflow.ts).
+ */
+export async function loadAllLinks(): Promise<BookingLink[]> {
+  const { data, error } = await getSupabase()
+    .from('booking_links')
+    .select('*')
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.error('Failed to load contract links:', error.message)
+    return []
+  }
+  return (data ?? []).map(rowToLink)
+}
+
+/**
  * Raise the balance invoice against an existing link.
  *
  * Separate from link creation because it happens weeks or months later, on a

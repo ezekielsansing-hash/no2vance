@@ -491,5 +491,37 @@ an unfamiliar number, so this may never be an upgrade.
    keys, connected to the real company, contract `v2` current.
 5. Phase 3 — email, once it's worth it. **Next**, alongside the two gaps this
    phase left: nothing writes `booking_links.voided_at`, so there is no
-   void-and-reissue path and a second link means a second invoice; and the
-   payment webhook is unproven until a real payment runs through it.
+   void-and-reissue path and a second link means a second invoice. (The
+   payment webhook is now working on real payments, per Zeke, Oct 2026.)
+
+---
+
+## Cash Flow page — BUILT
+
+`/cashflow` shows money by the day it arrives rather than the day of the
+event, now that every booking goes through a link and a QuickBooks invoice.
+No migration: it reads what the webhook already records
+(`booking_links.paid_at`, `balance_paid_at`, `balance_due_on`) plus
+`events.converted_at` for when a booking was won. The math lives in
+`app/lib/cashflow.ts` as pure functions; the page is a view over it.
+
+- **Money in by month** — deposits and balances received, balances still
+  owed in the month they fall due, and a dashed line at `MONTHLY_COSTS`
+  ($6,290: the $4,123 operating run rate from the Oct 2026 statements
+  review plus Kim's $500/week base).
+- **2027 booking pace** — value of 2027 events booked (deposit paid) against
+  the proposed checkpoints in `PACE_TARGETS`, interpolated from
+  `PACE_BASELINE` ($8,500 on Oct 20, 2026) so "on pace" works between
+  checkpoints. `PANIC_TRIGGER` is the fallback-plan line.
+- **Coming due** — the next 60 days, flagging overdue payments and balances
+  whose invoice hasn't been raised yet (balance invoices are still raised by
+  hand from the booking detail).
+- **Recent payments** — the last ten payments QuickBooks recorded.
+
+Bookings from before contract links have no payment dates, so they are
+**estimated** and drawn lighter: deposit on `date_of_deposit` (half the rate
+if no amount was recorded), balance on its due date if the event has passed.
+
+It depends on the payment webhook stamping `paid_at` and `balance_paid_at`.
+A booking confirmed by hand rather than by the webhook shows its deposit as
+estimated.
