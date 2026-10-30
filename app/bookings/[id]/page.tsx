@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import styles from '../../new/page.module.css'
+import ManualPaymentFields from '../../components/ManualPaymentFields'
 import {
   BookingStatus,
   Customer,
@@ -544,7 +545,13 @@ export default function EditBookingPage() {
                     <div className={styles.field}>
                       <span className={styles.label}>Balance Due</span>
                       <div className={styles.calculatedField}>
-                        {formatBalanceDue(form.ratePackage, form.depositAmount)}
+                        {form.noBalanceExpected
+                          ? 'None expected'
+                          : formatBalanceDue(
+                              form.ratePackage,
+                              form.depositAmount,
+                              form.balancePaidAmount,
+                            )}
                       </div>
                     </div>
 
@@ -561,6 +568,8 @@ export default function EditBookingPage() {
                       />
                     </label>
                   </div>
+
+                  <ManualPaymentFields form={form} onChange={handleChange} />
 
                   <div className={styles.fieldRow}>
                     <label className={styles.field}>

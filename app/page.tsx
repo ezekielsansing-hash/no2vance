@@ -766,7 +766,13 @@ export default function Home() {
                     <div>
                       <dt>Balance Due</dt>
                       <dd>
-                        {formatBalanceDue(activeEvent.ratePackage, activeEvent.depositAmount)}
+                        {activeEvent.noBalanceExpected
+                          ? 'None expected'
+                          : formatBalanceDue(
+                              activeEvent.ratePackage,
+                              activeEvent.depositAmount,
+                              activeEvent.balancePaidAmount,
+                            )}
                       </dd>
                     </div>
                     <div>
@@ -775,8 +781,20 @@ export default function Home() {
                         {activeEvent.dateOfDeposit
                           ? formatDate(activeEvent.dateOfDeposit)
                           : '—'}
+                        {activeEvent.depositMethod && ` · ${activeEvent.depositMethod}`}
                       </dd>
                     </div>
+                    {activeEvent.balancePaidAmount && (
+                      <div>
+                        <dt>Balance Paid</dt>
+                        <dd>
+                          {formatCurrency(activeEvent.balancePaidAmount)}
+                          {activeEvent.balancePaidOn &&
+                            ` on ${formatDate(activeEvent.balancePaidOn)}`}
+                          {activeEvent.balanceMethod && ` · ${activeEvent.balanceMethod}`}
+                        </dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Level of Effort</dt>
                       <dd>{activeEvent.effortLevel || '—'}</dd>
