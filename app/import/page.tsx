@@ -380,6 +380,12 @@ export default function ImportPage() {
           heardFrom: row.data.heardFrom?.trim() || '',
           dateOfDeposit: row.data.dateOfDeposit?.trim() || '',
           depositAmount: row.data.depositAmount?.trim() || '',
+          // Hand-recorded payments aren't part of the CSV format either.
+          depositMethod: '',
+          balancePaidAmount: '',
+          balancePaidOn: '',
+          balanceMethod: '',
+          noBalanceExpected: false,
           contractLink: row.data.contractLink?.trim() || '',
           airbnb: row.data.airbnb?.trim() || '',
           estimatedGuestCount: row.data.estimatedGuestCount?.trim() || '',

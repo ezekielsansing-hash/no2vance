@@ -56,14 +56,16 @@ export function formatCurrencyInput(value: string): string {
 }
 
 /**
- * Balance still owed after the deposit. Returns "—" when there is nothing
- * meaningful to show, which is what every call site wants to render.
+ * Balance still owed after the deposit and any balance paid by hand. Returns
+ * "—" when there is nothing meaningful to show, which is what every call site
+ * wants to render.
  */
 export function formatBalanceDue(
   rate: string | number | null | undefined,
   deposit: string | number | null | undefined,
+  balancePaid?: string | number | null,
 ): string {
-  const balance = parseAmount(rate) - parseAmount(deposit)
+  const balance = parseAmount(rate) - parseAmount(deposit) - parseAmount(balancePaid)
   return balance > 0 ? formatCurrency(balance) : '—'
 }
 

@@ -38,6 +38,16 @@ export const STATUS_CHIP_CLASS: Record<BookingStatus, string> = {
   lost: 'chipLost',
 }
 
+/** How a payment recorded by hand was made. Stored as the label itself. */
+export const PAYMENT_METHODS = [
+  'Venmo',
+  'Cash App',
+  'Zelle',
+  'Cash',
+  'Check',
+  'Other',
+] as const
+
 export type Customer = {
   id: string
   name: string
@@ -59,6 +69,13 @@ export type EventFormState = {
   heardFrom: string
   dateOfDeposit: string
   depositAmount: string
+  // Payments recorded by hand, for bookings paid outside QuickBooks. A method
+  // marks the payment as received; see 006-manual-payments.sql.
+  depositMethod: string
+  balancePaidAmount: string
+  balancePaidOn: string
+  balanceMethod: string
+  noBalanceExpected: boolean
   contractLink: string
   airbnb: string
   estimatedGuestCount: string
@@ -109,6 +126,11 @@ export const EMPTY_FORM: EventFormState = {
   heardFrom: '',
   dateOfDeposit: '',
   depositAmount: '',
+  depositMethod: '',
+  balancePaidAmount: '',
+  balancePaidOn: '',
+  balanceMethod: '',
+  noBalanceExpected: false,
   contractLink: '',
   airbnb: '',
   estimatedGuestCount: '',
@@ -156,6 +178,11 @@ function rowToEvent(row: EventRow): EventRecord {
     heardFrom: (row.heard_from as string) || '',
     dateOfDeposit: (row.date_of_deposit as string) || '',
     depositAmount: (row.deposit_amount as string) || '',
+    depositMethod: (row.deposit_method as string) || '',
+    balancePaidAmount: (row.balance_paid_amount as string) || '',
+    balancePaidOn: (row.balance_paid_on as string) || '',
+    balanceMethod: (row.balance_method as string) || '',
+    noBalanceExpected: Boolean(row.no_balance_expected),
     contractLink: (row.contract_link as string) || '',
     airbnb: (row.airbnb as string) || '',
     estimatedGuestCount: (row.estimated_guest_count as string) || '',
@@ -190,6 +217,11 @@ function eventToRow(event: EventRecord): EventRow {
     heard_from: event.heardFrom,
     date_of_deposit: event.dateOfDeposit,
     deposit_amount: event.depositAmount,
+    deposit_method: event.depositMethod,
+    balance_paid_amount: event.balancePaidAmount,
+    balance_paid_on: event.balancePaidOn,
+    balance_method: event.balanceMethod,
+    no_balance_expected: event.noBalanceExpected,
     contract_link: event.contractLink,
     airbnb: event.airbnb,
     estimated_guest_count: event.estimatedGuestCount,

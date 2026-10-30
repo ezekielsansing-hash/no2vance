@@ -5,7 +5,8 @@
  * (Section 3 of the agreement). Each payment is in one of four states:
  *
  * - received:  QuickBooks told us it was paid (booking_links.paid_at /
- *              balance_paid_at, stamped by the payment webhook).
+ *              balance_paid_at, stamped by the payment webhook), or it was
+ *              recorded by hand with a method (Venmo, cash, check...).
  * - estimated: a booking from before contract links existed. Nothing recorded
  *              when it was paid, so the deposit is placed on date_of_deposit and
  *              the balance on its due date, and the chart shades them lighter.
@@ -208,6 +209,9 @@ export function buildCashItems(
     // --- Deposit -----------------------------------------------------------
     if (link?.paidAt) {
       items.push({ ...base, kind: 'deposit', amount: deposit, date: toVenueDate(link.paidAt), state: 'received' })
+    } else if (event.depositMethod && isIsoDate(event.dateOfDeposit)) {
+      // Paid outside QuickBooks and recorded by hand.
+      items.push({ ...base, kind: 'deposit', amount: deposit, date: event.dateOfDeposit.trim(), state: 'received' })
     } else {
       // Confirmed without a webhook-recorded payment: an older booking, or one
       // confirmed by hand. Take the recorded deposit date if there is one.
@@ -220,13 +224,23 @@ export function buildCashItems(
     }
 
     // --- Balance -----------------------------------------------------------
-    const balance =
+    if (event.noBalanceExpected && !link?.balancePaidAt) continue
+    let balance =
       parseAmount(link?.balanceAmount) || Math.max(0, rate - deposit)
     if (balance <= 0) continue
 
     const due =
       (isIsoDate(link?.balanceDueOn) && link!.balanceDueOn!.trim()) ||
       addDays(eventDate, -BALANCE_DUE_DAYS_BEFORE)
+
+    // Paid outside QuickBooks and recorded by hand. Whatever is left after it
+    // is still owed on the usual due date.
+    const paidByHand = link?.balancePaidAt ? 0 : parseAmount(event.balancePaidAmount)
+    if (paidByHand > 0 && isIsoDate(event.balancePaidOn)) {
+      items.push({ ...base, kind: 'balance', amount: paidByHand, date: event.balancePaidOn.trim(), state: 'received' })
+      balance -= paidByHand
+      if (balance <= 0) continue
+    }
 
     if (link?.balancePaidAt) {
       items.push({ ...base, kind: 'balance', amount: balance, date: toVenueDate(link.balancePaidAt), state: 'received', invoiceRaised: true })
